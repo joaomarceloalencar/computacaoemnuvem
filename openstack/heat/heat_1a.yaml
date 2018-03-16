@@ -1,0 +1,14 @@
+heat_template_version: 2013-05-23
+
+description: Criação de uma Única Instância
+
+resources:
+  minha_instancia:
+     type: OS::Nova::Server
+     properties:
+        image: Ubuntu1604UFCQX 
+        flavor: ufcquixada
+        key_name: alunoufc
+        networks:
+           - network: private_network_computacaoemnuvem
+

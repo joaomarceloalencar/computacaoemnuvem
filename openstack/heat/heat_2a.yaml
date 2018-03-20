@@ -1,0 +1,47 @@
+heat_template_version: 2013-05-23
+
+description: Template com parâmetros
+
+parameters:
+   image:
+      type: string
+      label: Nome ou ID da Imagem
+      description: Imagem da Instância
+      default: cirros
+   flavor:
+      type: string
+      label: Sabor 
+      description: Tipo da Instância
+      default: ufcquixada
+   key:
+      type: string
+      label: Nome da chave
+      description: Nome da chave a ser usada
+      default: alunoufc
+   private_network:
+      type: string
+      label: Nome ou ID da rede
+      description: Rede privada do projeto
+      default: private_network_computacaoemnuvem
+
+resources:
+   minha_instancia:
+      type: OS::Nova::Server
+      properties:
+         image: { get_param: image }
+         flavor: { get_param: flavor }
+         key_name: { get_param: key }
+         networks:
+            - network: { get_param: private_network }
+         user_data: |
+            #!/bin/sh
+            echo "Olá Mundo!!!"
+            apt-get -y install python-openstacksdk
+         user_data_format: RAW
+outputs:
+   instance_name:
+      description: Nome da instância
+      value: { get_attr: [minha_instancia, name] }
+   instance_ip:
+      description: IP da Instância
+      value: { get_attr: [minha_instancia, first_address] }

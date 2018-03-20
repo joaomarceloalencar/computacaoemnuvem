@@ -33,11 +33,11 @@ resources:
          key_name: { get_param: key }
          networks:
             - network: { get_param: private_network }
+         user_data_format: RAW
          user_data: |
             #!/bin/sh
-            echo "Olá Mundo!!!"
-            apt-get -y install python-openstacksdk
-         user_data_format: RAW
+            echo "Olá Mundo!!!" 
+            apt-get -y install python-openstackclient 
 outputs:
    instance_name:
       description: Nome da instância

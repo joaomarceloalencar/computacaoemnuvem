@@ -1,0 +1,48 @@
+heat_template_version: 2013-05-23
+ 
+description: Modelo que instala o WordPress e o MySQL em máquinas separadas. 
+ 
+parameters:
+  image:
+    type: string
+    label: Nome ou ID da Imagem
+    description: Imagem utilizada para os servidores.
+    default: Ubuntu1404
+  flavor:
+    type: string
+    label: Sabor
+    description: Tipo de instância a ser criada.
+    default: ufcquixada
+  key:
+    type: string
+    label: Nome da chave
+    description: Nome do par de chaves a ser instalado na instância.
+    default: alunoufc
+  private_network:
+    type: string
+    label: Nome ou ID da rede privada.
+    description: Rede privada do projeto.
+    default: private_network_computacaoemnuvem
+ 
+resources:
+  mysql:
+    type: lib/mysql.yaml
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key: { get_param: key }
+      private_network: { get_param: private_network }
+      database_name: wordpress
+      database_user: wordpress_user
+ 
+  wordpress:
+    type: lib/wordpress.yaml
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key: { get_param: key }
+      private_network: { get_param: private_network }
+      mysql_server: { get_attr: [mysql, ip] }
+      database_name: wordpress
+      database_user: wordpress_user
+      database_password: { get_attr: [mysql, database_password] }

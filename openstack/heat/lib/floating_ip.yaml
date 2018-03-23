@@ -1,0 +1,32 @@
+heat_template_version: 2013-05-23
+
+description: Modelo que atribui um IP Flutuante a um Servidor.
+
+parameters:
+  port:
+    type: string
+    label: Porta do Servidor
+    description: A porta (ou interface) do servidor que recebe o IP flutuante.
+    
+  public_network:
+    type: string
+    label: Nome ou Identificador da rede pública
+    description: Rede pública com IPs Flutuantes.
+    default: public
+
+resources:
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { get_param: public_network }
+
+  floating_ip_assoc:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: floating_ip }
+      port_id: { get_param: port }
+
+outputs:
+  ip:
+    description: IP flutuante atribuido ao servidor.
+    value: { get_attr: [floating_ip, floating_ip_address] }

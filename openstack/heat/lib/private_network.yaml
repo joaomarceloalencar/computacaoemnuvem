@@ -1,0 +1,48 @@
+heat_template_version: 2013-05-23
+
+description: Modelo que cria uma rede privada.
+
+parameters:
+  public_network:
+    type: string
+    label: Nome ou ID da rede pública.
+    description: Rede pública com IPs flutuantes.
+    default: external_network 
+  cidr:
+    type: string
+    label: Endereço de rede
+    description: O endereço e a máscara de rede utilizada.
+    default: '10.10.10.0/24'
+  dns:
+    type: comma_delimited_list
+    label: Servidores DNS
+    description: Lista separada por vírgulas de servidores DNS.
+    default: '8.8.8.8'
+
+resources:
+  private_network:
+    type: OS::Neutron::Net
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_network }
+      cidr: { get_param: cidr }
+      dns_nameservers: { get_param: dns }
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: public_network }
+
+  router-interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet: { get_resource: private_subnet }
+
+outputs:
+  name:
+    description: The private network.
+    value: { get_attr: [private_network, name] }

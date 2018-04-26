@@ -6,8 +6,6 @@ sharedsecret=$(openssl rand -base64 30)
 user=vpn
 password=$(openssl rand -base64 30)
 
-# aws cloudformation create-stack --stack-name vpn --template-url https://s3.amazonaws.com/awsinaction/chapter5/vpn-cloudformation.json --parameters ParameterKey=KeyName,ParameterValue=mykey ParameterKey=VPC,ParameterValue=$vpc ParameterKey=Subnet,ParameterValue=$subnet ParameterKey=IPSecSharedSecret,ParameterValue=$sharedsecret ParameterKey=VPNUser,ParameterValue=$user ParameterKey=VPNPassword,ParameterValue=$password
-
 aws cloudformation create-stack --stack-name vpn \
 --template-body file://vpn-cloudformation.json --parameters ParameterKey=KeyName,ParameterValue=computacaoemnuvem ParameterKey=VPC,ParameterValue=$vpc ParameterKey=Subnet,ParameterValue=$subnet ParameterKey=IPSecSharedSecret,ParameterValue=$sharedsecret ParameterKey=VPNUser,ParameterValue=$user ParameterKey=VPNPassword,ParameterValue=$password
 

@@ -1,30 +1,30 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "AWS in Action: chapter 5 (OpenSwan acting as VPN IPSec endpoint)",
+	"Description": "OpenSwan como VPN IPSec",
 	"Parameters": {
 		"KeyName": {
-			"Description": "key for SSH access",
+			"Description": "Chave de Acesso SSH",
 			"Type": "AWS::EC2::KeyPair::KeyName",
-			"ConstraintDescription": "Must be the name of an existing key pair."
+			"ConstraintDescription": "Precisa existir, não será criada."
 		},
 		"VPC": {
-			"Description": "Just select the one and only default VPC.",
+			"Description": "Escolher a rede VPC padrão.",
 			"Type": "AWS::EC2::VPC::Id"
 		},
 		"Subnet": {
-			"Description": "Just select one of the available subnets.",
+			"Description": "Escolher a subrede padrão.",
 			"Type": "AWS::EC2::Subnet::Id"
 		},
 		"IPSecSharedSecret": {
-			"Description": "The shared secret key for IPSec.",
+			"Description": "Chave compartilhada para o IPSec.",
 			"Type": "String"
 		},
 		"VPNUser": {
-			"Description": "The VPN user.",
+			"Description": "Usuário VPN.",
 			"Type": "String"
 		},
 		"VPNPassword": {
-			"Description": "The VPN password.",
+			"Description": "Senha VPN.",
 			"Type": "String"
 		}
 	},
@@ -64,7 +64,7 @@
 		"InstanceSecurityGroup": {
 			"Type": "AWS::EC2::SecurityGroup",
 			"Properties": {
-				"GroupDescription": "Enable access to VPN server",
+				"GroupDescription": "Habilitar acesso a porta da VPN",
 				"VpcId": {"Ref": "VPC"},
 				"SecurityGroupIngress": [
 					{
@@ -97,19 +97,19 @@
 	},
 	"Outputs": {
 		"ServerIP": {
-			"Description": "Public IP address of the vpn server",
+			"Description": "IP Público da VPN",
 			"Value": {"Fn::GetAtt": ["EC2Instance", "PublicIp"]}
 		},
 		"IPSecSharedSecret": {
-			"Description": "The shared key for the VPN connection (IPSec)",
+			"Description": "A chave secreta do IPSec",
 			"Value": {"Ref": "IPSecSharedSecret"}
 		},
 		"VPNUser": {
-			"Description": "The username for the vpn connection",
+			"Description": "O usuário para a conexão VPN",
 			"Value": {"Ref": "VPNUser"}
 		},
 		"VPNPassword": {
-			"Description": "The password for the vpn connection",
+			"Description": "A senha para a conexão VPN",
 			"Value": {"Ref": "VPNPassword"}
 		}
 	}

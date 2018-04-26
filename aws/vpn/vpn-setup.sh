@@ -1,8 +1,8 @@
 #!/bin/bash -ex
 
-#param IPSEC_PSK the shared secret
-#param VPN_USER the vpn username
-#param VPN_PASSWORD the vpn password
+#param IPSEC_PSK a chave compartilhada 
+#param VPN_USER usuário VPN
+#param VPN_PASSWORD senha VPN
 #param STACK_NAME
 #param REGION
  

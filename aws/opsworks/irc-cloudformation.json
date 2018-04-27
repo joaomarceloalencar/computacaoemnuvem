@@ -1,0 +1,27 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Grupo de Segurança para Servidor IRC",
+	"Parameters": {
+		"VPC": {
+			"Description": "Escolher o VPC Padrão..",
+			"Type": "AWS::EC2::VPC::Id"
+		}
+	},
+	"Resources": {
+		"SecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Acesso ao Servidor IRC",
+				"VpcId": {"Ref": "VPC"},
+				"SecurityGroupIngress": [
+					{
+						"IpProtocol": "tcp",
+						"FromPort": "6667",
+						"ToPort": "6667",
+						"CidrIp": "0.0.0.0/0"
+					}
+				]
+			}
+		}
+	}
+}

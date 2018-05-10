@@ -19,7 +19,7 @@
 			"Description": "Tempo de Vida da Instância em Minutos(2-59)",
 			"Type": "Number",
 			"Default": "2",
-			"MinValue": "2",
+			"MinValue": "1",
 			"MaxValue": "59"
 		}
 	},

@@ -1,0 +1,81 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Permitir SSH de um Endereco Apenas",
+	"Parameters": {
+		"KeyName": {
+			"Description": "Nome da Chave",
+			"Type": "AWS::EC2::KeyPair::KeyName",
+			"Default": "computacaoemnuvem"
+		},
+		"VPC": {
+			"Description": "Rede Virtual",
+			"Type": "AWS::EC2::VPC::Id"
+		},
+		"Subnet": {
+			"Description": "Subrede",
+			"Type": "AWS::EC2::Subnet::Id"
+		},
+		"IpForSSH": {
+			"Description": "Endereco de Origem das Conexoes SSH",
+			"Type": "String"
+		}
+	},
+	"Mappings": {
+		"EC2RegionMap": {
+			"ap-northeast-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-cbf90ecb"},
+			"ap-southeast-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-68d8e93a"},
+			"ap-southeast-2": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-fd9cecc7"},
+			"eu-central-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-a8221fb5"},
+			"eu-west-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-a10897d6"},
+			"sa-east-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-b52890a8"},
+			"us-east-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-1ecae776"},
+			"us-west-1": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-d114f295"},
+			"us-west-2": {"AmazonLinuxAMIHVMEBSBacked64bit": "ami-e7527ed7"}
+		}
+	},
+	"Resources": {
+		"SecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "SSH de Origem Fixa",
+				"VpcId": {"Ref": "VPC"}
+			}
+		},
+		"AllowInboundICMP": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Properties": {
+				"GroupId": {"Ref": "SecurityGroup"},
+				"IpProtocol": "icmp",
+				"FromPort": "-1",
+				"ToPort": "-1",
+				"CidrIp": "0.0.0.0/0"
+			}
+		},
+		"AllowInboundSSH": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Properties": {
+				"GroupId": {"Ref": "SecurityGroup"},
+				"IpProtocol": "tcp",
+				"FromPort": "22",
+				"ToPort": "22",
+				"CidrIp": {"Fn::Join": ["", [{"Ref": "IpForSSH"}, "/32"]]}
+			}
+		},
+		"Server": {
+			"Type": "AWS::EC2::Instance",
+			"Properties": {
+				"ImageId": {"Fn::FindInMap": ["EC2RegionMap", {"Ref": "AWS::Region"}, "AmazonLinuxAMIHVMEBSBacked64bit"]},
+				"InstanceType": "t2.micro",
+				"KeyName": {"Ref": "KeyName"},
+				"SecurityGroupIds": [{"Ref": "SecurityGroup"}],
+				"SubnetId": {"Ref": "Subnet"}
+			}
+		}
+	},
+	"Outputs": {
+		"PublicName": {
+			"Value": {"Fn::GetAtt": ["Server", "PublicDnsName"]},
+			"Description": "Nome Publico da Instancia"
+		}
+	}
+}

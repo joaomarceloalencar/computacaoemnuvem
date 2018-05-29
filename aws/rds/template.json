@@ -1,29 +1,29 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "AWS in Action: chapter 9",
+	"Description": "Wordpress com RDS",
 	"Parameters": {
 		"KeyName": {
-			"Description": "Key Pair name",
+			"Description": "Nome da Chave",
 			"Type": "AWS::EC2::KeyPair::KeyName",
-			"Default": "mykey"
+			"Default": "computacaoemnuvem"
 		},
 		"BlogTitle": {
-			"Description": "The title of the blog.",
+			"Description": "Titulo do Blog",
 			"Type": "String",
-			"Default": "Amazon Web Services in Action - Example"
+			"Default": "WordPress UFC QX"
 		},
 		"AdminUsername": {
-			"Description": "A username for admin.",
+			"Description": "Nome do Usuario",
 			"Type": "String",
-			"Default": "admin"
+			"Default": "alunoufc"
 		},
 		"AdminPassword": {
-			"Description": "A password for admin",
+			"Description": "Senha",
 			"Type": "String",
 			"NoEcho": "true"
 		},
 		"AdminEMail": {
-			"Description": "The email address of the administrator.",
+			"Description": "Email do administrador",
 			"Type": "String"
 		}
 	},
@@ -151,7 +151,7 @@
 			"Type": "AWS::ElasticLoadBalancing::LoadBalancer",
 			"Properties": {
 				"Subnets": [{"Ref": "SubnetA"}, {"Ref": "SubnetB"}],
-				"LoadBalancerName": "awsinaction-elb",
+				"LoadBalancerName": "ufcqx-elb",
 				"Listeners": [{
 					"InstancePort": "80",
 					"InstanceProtocol": "HTTP",
@@ -173,7 +173,7 @@
 		"LoadBalancerSecurityGroup": {
 			"Type": "AWS::EC2::SecurityGroup",
 			"Properties": {
-				"GroupDescription": "awsinaction-elb-sg",
+				"GroupDescription": "ufcqx-elb-sg",
 				"VpcId": {"Ref": "VPC"},
 				"SecurityGroupIngress": [{
 					"CidrIp": "0.0.0.0/0",
@@ -186,7 +186,7 @@
 		"WebServerSecurityGroup": {
 			"Type": "AWS::EC2::SecurityGroup",
 			"Properties": {
-				"GroupDescription": "awsinaction-sg",
+				"GroupDescription": "ufcqx-sg",
 				"VpcId": {"Ref": "VPC"},
 				"SecurityGroupIngress": [{
 					"CidrIp": "0.0.0.0/0",
@@ -204,7 +204,7 @@
 		"DatabaseSecurityGroup": {
 			"Type": "AWS::EC2::SecurityGroup",
 			"Properties": {
-				"GroupDescription": "awsinaction-db-sg",
+				"GroupDescription": "ufcqx-db-sg",
 				"VpcId": {"Ref": "VPC"},
 				"SecurityGroupIngress": [{
 					"IpProtocol": "tcp",
@@ -220,7 +220,7 @@
 			"Properties": {
 				"AllocatedStorage": "5",
 				"DBInstanceClass": "db.t2.micro",
-				"DBInstanceIdentifier": "awsinaction-db",
+				"DBInstanceIdentifier": "ufcqx-db",
 				"DBName": "wordpress",
 				"Engine": "MySQL",
 				"MasterUsername": "wordpress",

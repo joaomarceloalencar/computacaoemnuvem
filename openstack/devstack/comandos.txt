@@ -1,0 +1,19 @@
+# criar instância devstack
+gcloud compute --project=openstack-236112 instances create devstack \
+--zone=us-east1-c --machine-type=n1-standard-4 --subnet=default --network-tier=PREMIUM \
+--metadata=ssh-keys=jmhal:"`cat ~/.ssh/saturn.pem.pub`" \
+--metadata-from-file startup-script=./devstack.sh \
+--maintenance-policy=MIGRATE \
+--service-account=327514118178-compute@developer.gserviceaccount.com \
+--tags=http-server,https-server \
+--image=ubuntu-1804-bionic-v20190320 \
+--image-project=ubuntu-os-cloud \
+--boot-disk-size=50GB \
+--boot-disk-type=pd-standard 
+--boot-disk-device-name=devstack
+
+# pegar o log da instância
+gcloud compute instances get-serial-port-output devstack --project=openstack-236112 --zone=us-east1-c
+
+# remover a instância
+gcloud compute instances delete devstack --project=openstack-236112 --zone=us-east1-c

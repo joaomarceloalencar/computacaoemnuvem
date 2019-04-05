@@ -20,24 +20,34 @@ Parameters:
       Description: The EC2 Key Pair to allow SSH access to the instance
       Type: 'AWS::EC2::KeyPair::KeyName'
 
+Mappings:
+   RegionMap:
+      "us-east-1":
+         "ubuntu1804": "ami-0a313d6098716f372"
+      "us-west-1":  
+         "ubuntu1804": "ami-06397100adf427136"
+      "sa-east-1":
+         "ubuntu1804": "ami-09f4cd7c0b533b081"
+         
 Resources:
-  Ec2Instance:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      SecurityGroups:
-        - !Ref InstanceSecurityGroup
-      KeyName: !Ref InstanceKeyNameParameter
-      InstanceType: !Ref InstanceTypeParameter
-      ImageId: ami-0a313d6098716f372
-  InstanceSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: Enable SSH access via port 22
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
-          CidrIp: 0.0.0.0/0   
+   Ec2Instance:
+      Type: 'AWS::EC2::Instance'
+      Properties:
+         SecurityGroups:
+            - !Ref InstanceSecurityGroup
+         KeyName: !Ref InstanceKeyNameParameter
+         InstanceType: !Ref InstanceTypeParameter
+         ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", ubuntu1804]
+
+   InstanceSecurityGroup:
+      Type: 'AWS::EC2::SecurityGroup'
+      Properties:
+         GroupDescription: Enable SSH access via port 22
+         SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: 0.0.0.0/0   
 
 Outputs:
    PublicAddress:

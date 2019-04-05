@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >
+   A simple template for a simple instance.
+
+Parameters:
+   InstanceTypeParameter:
+      Type: String
+      Default: t2.micro
+      AllowedValues:
+         - t2.nano
+         - t2.micro
+         - t2.small
+         - t2.medium
+         - t2.large
+         - t2.xlarge
+         - t2.2xlarge
+      Description: Instance type.
+   InstanceKeyNameParameter:
+      Description: The EC2 Key Pair to allow SSH access to the instance
+      Type: 'AWS::EC2::KeyPair::KeyName'
+
+Resources:
+  Ec2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      SecurityGroups:
+        - !Ref InstanceSecurityGroup
+      KeyName: !Ref InstanceKeyNameParameter
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: ami-0a313d6098716f372
+  InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0   
+
+Outputs:
+   PublicAddress:
+      Description: Public IP of the Instance.
+      Value: !GetAtt Ec2Instance.PublicIp

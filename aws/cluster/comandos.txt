@@ -1,0 +1,13 @@
+# Validar um template
+aws cloudformation validate-template --template-body file://simples_servidor.yaml
+
+# Criar uma stack
+aws cloudformation create-stack --stack-name simplesservidor --template-body file://simples_servidor.yaml --parameters \
+ParameterKey=InstanceTypeParameter,ParameterValue=t2.micro \
+ParameterKey=InstanceKeyNameParameter,ParameterValue=saturn 
+
+# Lista as stack
+aws cloudformation describre-stacks
+
+# Deletar uma stack
+aws cloudformation delete-stack --stack-name simplesservidor

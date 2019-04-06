@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Simple template to deploy a small cluster from scratch 
+
+parameters:
+  image:
+    type: string
+    label: Image name or ID
+    description: Image to be used for cluster instance
+    default: ElasticNode 
+  flavor:
+    type: string
+    label: Flavor
+    description: Type of instance (flavor) to be used
+    default: shelf.tiny
+  key:
+    type: string
+    label: Key name
+    description: Name of key-pair to be used for compute instance
+    default: joaoalencar
+  public_network:
+    type: string
+    label: Private network name or ID
+    description: Network to attach instance to.
+    default: ext-net
+  cluster_size:
+    type: number
+    label: Cluster size
+    description: Number of compute node instances in cluster
+    default: 2
+
+resources:
+  network:
+    type: lib/private_network.yaml
+    properties:
+      public_network: { get_param: public_network }
+
+  security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: cluster_security_group
+      rules:
+        - protocol: icmp
+        - protocol: udp
+        - protocol: tcp
+
+  head_node:
+    type: lib/head_node.yaml 
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key: { get_param: key }
+      cluster_size: { get_param: cluster_size }
+      private_network: { get_attr: [network, name] }
+      security_group: { get_resource: security_group }
+
+  floating_ip:
+    type: lib/floating_ip.yaml
+    properties:
+      port: { get_attr: [head_node, head_node_instance_port] }
+      public_network: { get_param: public_network }
+
+  mpi_cluster: 
+     type: OS::Heat::ResourceGroup
+     properties:
+        count: {get_param: cluster_size}
+        resource_def:
+           type: lib/compute_node.yaml
+           properties:
+              image: { get_param: image }
+              flavor: { get_param: flavor }
+              key: { get_param: key }
+              private_network: { get_attr: [network, name] }
+              security_group: { get_resource: security_group }
+ 
+outputs:
+  floating_ip:
+    description: The public IP address to access cluster.
+    value: { get_attr: [floating_ip, ip] } 
+
+  head_node_ip:
+    description: The IP from the private network attached to the head node.
+    value: { get_attr: [head_node, head_node_instance_ip] }
+
+  compute_node_ips:
+    description: The IPs from the private network attached to the compute nodes. 
+    value: { get_attr: [mpi_cluster, compute_node_instance_ip]}

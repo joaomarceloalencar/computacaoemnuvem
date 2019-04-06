@@ -33,22 +33,76 @@ Resources:
    Ec2Instance:
       Type: 'AWS::EC2::Instance'
       Properties:
-         SecurityGroups:
-            - !Ref InstanceSecurityGroup
-         KeyName: !Ref InstanceKeyNameParameter
          InstanceType: !Ref InstanceTypeParameter
          ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", ubuntu1804]
+         KeyName: !Ref InstanceKeyNameParameter
+         NetworkInterfaces:
+            - GroupSet:
+               - !Ref InstanceSecurityGroup 
+              AssociatePublicIpAddress: 'true'
+              DeviceIndex: '0'
+              DeleteOnTermination: 'true'
+              SubnetId: !Ref InstanceSubnet
 
+   InstanceVPC:
+      Type: 'AWS::EC2::VPC'
+      Properties:
+         CidrBlock: 10.0.0.0/16
+         EnableDnsSupport: 'true'
+         EnableDnsHostnames: 'true'
+
+   InstanceSubnet:
+      Type: 'AWS::EC2::Subnet'
+      Properties:
+         VpcId: !Ref InstanceVPC
+         CidrBlock: 10.0.0.0/24
+ 
    InstanceSecurityGroup:
       Type: 'AWS::EC2::SecurityGroup'
       Properties:
+         VpcId: !Ref InstanceVPC
          GroupDescription: Enable SSH access via port 22
          SecurityGroupIngress:
             - IpProtocol: tcp
               FromPort: '22'
               ToPort: '22'
-              CidrIp: 0.0.0.0/0   
+              CidrIp: 0.0.0.0/0  
+   
+   InternetGateway:
+      Type: 'AWS::EC2::InternetGateway'
+      Properties: {}
+ 
+   InternetGatewayAttachment:
+      Type: 'AWS::EC2::VPCGatewayAttachment'
+      Properties:
+         VpcId: !Ref InstanceVPC
+         InternetGatewayId: !Ref InternetGateway
 
+   RouteTable:
+      Type: 'AWS::EC2::RouteTable'
+      Properties:
+         VpcId: !Ref InstanceVPC
+
+   SubnetRouteTableAssociation:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      Properties:
+         SubnetId: !Ref InstanceSubnet
+         RouteTableId: !Ref RouteTable
+      
+   PublicRoute:
+      Type: 'AWS::EC2::Route'
+      DependsOn: InternetGatewayAttachment
+      Properties:
+         RouteTableId: !Ref RouteTable
+         GatewayId: !Ref InternetGateway
+         DestinationCidrBlock: 0.0.0.0/0
+
+   SubnetRouteTableAssociation:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      Properties:
+         SubnetId: !Ref InstanceSubnet
+         RouteTableId: !Ref RouteTable
+ 
 Outputs:
    PublicAddress:
       Description: Public IP of the Instance.

@@ -1,0 +1,80 @@
+heat_template_version: "2013-05-23"
+
+description: Creates a compute node for a MPI cluster
+
+parameters:
+
+  image:
+    type: string
+    label: Image name or ID
+    description: Image to be used for cluster instance
+    default: cirros-0.3.3-x86_64
+  flavor:
+    type: string
+    label: Flavor
+    description: Type of instance (flavor) to be used
+    default: m1.small
+  key:
+    type: string
+    label: Key name
+    description: Name of key-pair to be used for compute instance
+    default: my_key
+  private_network:
+    type: string
+    label: Private network name or ID
+    description: Network to attach instance to.
+    default: private-net
+  security_group:
+    type: string
+    label: Security Group for the Cluster
+    description: Security Group for the Cluster
+    default: default
+
+resources:
+  wait_condition:
+    type: OS::Heat::WaitCondition
+    properties:
+      handle: { get_resource: wh }
+      count: 1
+      timeout: 600
+
+  wh:
+    type: OS::Heat::WaitConditionHandle
+
+  compute_node_instance:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key }
+      networks:
+        - network: { get_param: private_network }
+      security_groups: [{ get_param: security_group }]
+      user_data_format: RAW
+      user_data: 
+         str_replace:
+            params:
+               wc_notify: { get_attr: ['wh', 'curl_cli'] }
+            template: |
+              #!/bin/bash -ex
+
+              # sync time 
+              ntpdate 200.19.177.89
+
+              #echo "nameserver 200.17.41.36" >> /etc/resolv.conf
+
+              # Update repositories
+              su - ubuntu -c "/home/ubuntu/repositorios/pull_repos.sh"
+              
+              # notify heat that we are done here
+              wc_notify --data-binary '{"status": "SUCCESS"}'
+
+outputs:
+  compute_node_instance_ip:
+    description: IP address of the instance
+    value: { get_attr: [compute_node_instance, first_address] }
+
+  compute_node_instance_name:
+    description: Name of the instance
+    value: { get_attr: [compute_node_instance, name] }
+

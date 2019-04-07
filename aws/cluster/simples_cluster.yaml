@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: ' A simple template for a simple cluster.'
+
+Parameters:
+   InstanceTypeParameter:
+      Type: String
+      Default: t2.micro
+      AllowedValues:
+         - t2.nano
+         - t2.micro
+         - t2.small
+         - t2.medium
+         - t2.large
+         - t2.xlarge
+         - t2.2xlarge
+      Description: 'Instance type.'
+
+   ClusterKeyNameParameter:
+      Description: 'The EC2 Key Pair to allow SSH access to the cluster master node.'
+      Type: 'AWS::EC2::KeyPair::KeyName'
+
+   ClusterAvailabilityZoneParameter:
+      Description: "The Availability Zone for the cluster."
+      Type: String
+      Default: "us-east-1a"
+
+   ClusterNumberOfNodesParameter:
+      Description: "The Cluster Size."
+      Type: Number
+      Default: 2
+
+Mappings:
+   RegionMap:
+      "us-east-1":
+         "ubuntu1804": "ami-0a313d6098716f372"
+      "us-west-1":  
+         "ubuntu1804": "ami-06397100adf427136"
+      "sa-east-1":
+         "ubuntu1804": "ami-09f4cd7c0b533b081"
+         
+Resources:
+   MasterNode:
+      Type: 'AWS::EC2::Instance'
+      Properties:
+         InstanceType: !Ref InstanceTypeParameter
+         ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", ubuntu1804]
+         KeyName: !Ref ClusterKeyNameParameter
+         NetworkInterfaces:
+            - GroupSet:
+               - !Ref ClusterSecurityGroup 
+              AssociatePublicIpAddress: 'true'
+              DeviceIndex: '0'
+              DeleteOnTermination: 'true'
+              PrivateIpAddress: '10.0.0.10'
+              SubnetId: !Ref ClusterSubnet
+
+   WorkerNodes:
+      Type: 'AWS::AutoScaling::AutoScalingGroup'
+      Properties:
+         InstanceId: !Ref MasterNode
+         AvailabilityZones:
+            - !Ref ClusterAvailabilityZoneParameter
+         MinSize: !Ref ClusterNumberOfNodesParameter
+         MaxSize: !Ref ClusterNumberOfNodesParameter
+
+   ClusterVPC:
+      Type: 'AWS::EC2::VPC'
+      Properties:
+         CidrBlock: 10.0.0.0/16
+         EnableDnsSupport: 'true'
+         EnableDnsHostnames: 'true'
+
+   ClusterSubnet:
+      Type: 'AWS::EC2::Subnet'
+      Properties:
+         VpcId: !Ref ClusterVPC
+         CidrBlock: 10.0.0.0/24
+         AvailabilityZone: !Ref ClusterAvailabilityZoneParameter
+ 
+   ClusterSecurityGroup:
+      Type: 'AWS::EC2::SecurityGroup'
+      Properties:
+         VpcId: !Ref ClusterVPC
+         GroupDescription: Enable SSH access via port 22
+         SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: 0.0.0.0/0  
+   
+   InternetGateway:
+      Type: 'AWS::EC2::InternetGateway'
+      Properties: {}
+ 
+   InternetGatewayAttachment:
+      Type: 'AWS::EC2::VPCGatewayAttachment'
+      Properties:
+         VpcId: !Ref ClusterVPC
+         InternetGatewayId: !Ref InternetGateway
+
+   RouteTable:
+      Type: 'AWS::EC2::RouteTable'
+      Properties:
+         VpcId: !Ref ClusterVPC
+
+   SubnetRouteTableAssociation:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      Properties:
+         SubnetId: !Ref ClusterSubnet
+         RouteTableId: !Ref RouteTable
+      
+   PublicRoute:
+      Type: 'AWS::EC2::Route'
+      DependsOn: InternetGatewayAttachment
+      Properties:
+         RouteTableId: !Ref RouteTable
+         GatewayId: !Ref InternetGateway
+         DestinationCidrBlock: 0.0.0.0/0
+
+   SubnetRouteTableAssociation:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      Properties:
+         SubnetId: !Ref ClusterSubnet
+         RouteTableId: !Ref RouteTable
+ 
+Outputs:
+   PublicAddress:
+      Description: Public IP of the Instance.
+      Value: !GetAtt MasterNode.PublicIp

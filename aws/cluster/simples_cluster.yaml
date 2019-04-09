@@ -53,16 +53,28 @@ Resources:
               DeviceIndex: '0'
               DeleteOnTermination: 'true'
               PrivateIpAddress: '10.0.0.10'
-              SubnetId: !Ref ClusterSubnet
+              SubnetId: !Ref ClusterPublicSubnet
 
-   WorkerNodes:
+   WorkerNodesAutoScalingGroup:
       Type: 'AWS::AutoScaling::AutoScalingGroup'
       Properties:
-         InstanceId: !Ref MasterNode
+         LaunchConfigurationName: !Ref WorkersNodesLaunchConfiguration
          AvailabilityZones:
             - !Ref ClusterAvailabilityZoneParameter
          MinSize: !Ref ClusterNumberOfNodesParameter
          MaxSize: !Ref ClusterNumberOfNodesParameter
+         VPCZoneIdentifier:
+            - !Ref ClusterPrivateSubnet
+
+   WorkersNodesLaunchConfiguration:      
+      Type: 'AWS::AutoScaling::LaunchConfiguration'
+      Properties:
+         AssociatePublicIpAddress: 'false'
+         ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", ubuntu1804]
+         InstanceType: !Ref InstanceTypeParameter
+         KeyName: !Ref ClusterKeyNameParameter
+         SecurityGroups: 
+            - !Ref ClusterSecurityGroup
 
    ClusterVPC:
       Type: 'AWS::EC2::VPC'
@@ -71,24 +83,33 @@ Resources:
          EnableDnsSupport: 'true'
          EnableDnsHostnames: 'true'
 
-   ClusterSubnet:
+   ClusterPublicSubnet:
       Type: 'AWS::EC2::Subnet'
       Properties:
          VpcId: !Ref ClusterVPC
          CidrBlock: 10.0.0.0/24
          AvailabilityZone: !Ref ClusterAvailabilityZoneParameter
  
+   ClusterPrivateSubnet:
+      Type: 'AWS::EC2::Subnet'
+      Properties:
+         VpcId: !Ref ClusterVPC
+         CidrBlock: 10.0.1.0/24
+         AvailabilityZone: !Ref ClusterAvailabilityZoneParameter
+ 
    ClusterSecurityGroup:
       Type: 'AWS::EC2::SecurityGroup'
       Properties:
          VpcId: !Ref ClusterVPC
-         GroupDescription: Enable SSH access via port 22
+         GroupDescription: 'Enable SSH access via port 22 and all other ports inside the VPC.'
          SecurityGroupIngress:
             - IpProtocol: tcp
               FromPort: '22'
               ToPort: '22'
               CidrIp: 0.0.0.0/0  
-   
+            - IpProtocol: "-1"
+              CidrIp: 10.0.0.0/24  
+ 
    InternetGateway:
       Type: 'AWS::EC2::InternetGateway'
       Properties: {}
@@ -99,31 +120,56 @@ Resources:
          VpcId: !Ref ClusterVPC
          InternetGatewayId: !Ref InternetGateway
 
-   RouteTable:
+   ClusterPublicRouteTable:
       Type: 'AWS::EC2::RouteTable'
       Properties:
          VpcId: !Ref ClusterVPC
 
-   SubnetRouteTableAssociation:
+   ClusterPublicSubnetRouteTableAssociation:
       Type: 'AWS::EC2::SubnetRouteTableAssociation'
       Properties:
-         SubnetId: !Ref ClusterSubnet
-         RouteTableId: !Ref RouteTable
+         SubnetId: !Ref ClusterPublicSubnet
+         RouteTableId: !Ref ClusterPublicRouteTable
       
-   PublicRoute:
+   ClusterPublicRoute:
       Type: 'AWS::EC2::Route'
       DependsOn: InternetGatewayAttachment
       Properties:
-         RouteTableId: !Ref RouteTable
+         RouteTableId: !Ref ClusterPublicRouteTable
          GatewayId: !Ref InternetGateway
          DestinationCidrBlock: 0.0.0.0/0
 
-   SubnetRouteTableAssociation:
+   ClusterNATElasticIP:      
+      Type: AWS::EC2::EIP
+      Properties:
+         Domain: !Ref ClusterVPC
+   
+   ClusterNAT:
+      DependsOn: InternetGatewayAttachment
+      Type: AWS::EC2::NatGateway
+      Properties:
+         AllocationId: !GetAtt ClusterNATElasticIP.AllocationId
+         SubnetId: !Ref ClusterPublicSubnet
+ 
+   ClusterPrivateRouteTable:
+      Type: 'AWS::EC2::RouteTable'
+      Properties:
+         VpcId: !Ref ClusterVPC
+         
+   ClusterPrivateSubnetRouteTableAssociation:
       Type: 'AWS::EC2::SubnetRouteTableAssociation'
       Properties:
-         SubnetId: !Ref ClusterSubnet
-         RouteTableId: !Ref RouteTable
- 
+         SubnetId: !Ref ClusterPrivateSubnet
+         RouteTableId: !Ref ClusterPrivateRouteTable
+
+   ClusterPrivateRoute:
+      Type: 'AWS::EC2::Route'
+      DependsOn: ClusterNAT
+      Properties:
+         RouteTableId: !Ref ClusterPrivateRouteTable
+         NatGatewayId: !Ref ClusterNAT
+         DestinationCidrBlock: 0.0.0.0/0
+        
 Outputs:
    PublicAddress:
       Description: Public IP of the Instance.

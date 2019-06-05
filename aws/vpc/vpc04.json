@@ -1,0 +1,137 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Criacao de um VPC, uma Subrede e um servidor",
+	"Parameters": {
+		"FaixaIPVPC": {
+			"Description": "Faixa IP Utilizada no VPC",
+			"Type": "String",
+			"Default": "10.0.0.0/16",
+         "AllowedValues": ["10.0.0.0/16", "172.16.0.0/16", "192.168.0.0/16"]
+		},
+		"FaixaIPSubrede": {
+			"Description": "Faixa IP Utilizada na Subrede",
+			"Type": "String",
+			"Default": "10.0.10.0/24",
+         "AllowedValues": ["10.0.10.0/24", "172.16.10.0/24", "192.168.10.0/24"]
+		},
+      "ZonaSubrede": {
+         "Description": "Zona da Subrede",
+         "Type": "Number",
+         "Default": 1
+      },
+		"KeyName": {
+			"Description": "Nome do par de chaves",
+			"Type": "AWS::EC2::KeyPair::KeyName",
+			"Default": "mykey"
+		},
+	   "InstanceType": {
+			"Description": "Tipo de instancia",
+			"Type": "String",
+			"Default": "t2.micro",
+			"AllowedValues": ["t2.micro", "t2.small", "t2.medium"]
+		},
+      "ImageId": {
+         "Description": "Identificador da Imagem",
+         "Type": "String",
+         "Default": "ami-024a64a6685d05041"
+      }
+   },
+	"Resources": {
+		"NovoVPC": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+            "CidrBlock": {"Ref": "FaixaIPVPC"},
+            "Tags": [{"Key": "Name", "Value": "NovoVPC"}]
+			}
+		},
+      "NovaSubrede": {
+         "Type": "AWS::EC2::Subnet",
+         "Properties": {
+            "VpcId": {"Ref": "NovoVPC"},
+            "CidrBlock": {"Ref": "FaixaIPSubrede"},
+            "AvailabilityZone": {
+               "Fn::Select" : [
+                  {"Ref": "ZonaSubrede"},
+                  {
+                     "Fn::GetAZs": ""
+                  }
+               ]
+            } 
+         }
+      },
+      "RoteadorInternet":{
+         "Type": "AWS::EC2::InternetGateway"
+      },
+      "LigacaoRoteadorVPC": {
+         "Type": "AWS::EC2::VPCGatewayAttachment",
+         "Properties": {
+            "InternetGatewayId": {"Ref": "RoteadorInternet"},
+            "VpcId": {"Ref": "NovoVPC"}
+         }
+      },
+      "TabelaRoteamento": {
+         "Type": "AWS::EC2::RouteTable",
+         "Properties": {
+            "VpcId": {"Ref": "NovoVPC"}
+         }
+      },
+      "EntradaTabelaRoteamento": {
+         "Type": "AWS::EC2::Route",
+         "Properties": {
+            "GatewayId": {"Ref": "RoteadorInternet"},
+            "DestinationCidrBlock" : "0.0.0.0/0",
+            "RouteTableId": {"Ref": "TabelaRoteamento"}
+         }
+      },
+      "LigacaoTabelaSubRede": {
+         "Type": "AWS::EC2::SubnetRouteTableAssociation",
+         "Properties": {
+            "SubnetId": {"Ref": "NovaSubrede"},
+            "RouteTableId": {"Ref": "TabelaRoteamento"}
+         }
+      },
+		"GrupoDeSeguranca": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Grupo de Seguranca",
+				"VpcId": {"Ref": "NovoVPC"},
+				"SecurityGroupIngress": [{
+					"CidrIp": "0.0.0.0/0",
+					"FromPort": 80,
+					"IpProtocol": "tcp",
+					"ToPort": 80
+				}, {
+   				"CidrIp": "0.0.0.0/0",
+					"FromPort": 22,
+					"IpProtocol": "tcp",
+					"ToPort": 22
+            }]
+			}
+		},
+		"Servidor": {
+			"Type": "AWS::EC2::Instance",
+			"Properties": {
+				"ImageId": {"Ref":"ImageId"},
+				"InstanceType": {"Ref": "InstanceType"},
+				"KeyName": {"Ref": "KeyName"},
+            "NetworkInterfaces": [{
+					"AssociatePublicIpAddress": "true",
+					"DeleteOnTermination": "true",
+					"SubnetId": {"Ref": "NovaSubrede"},
+					"DeviceIndex": "0",
+					"GroupSet": [{"Ref": "GrupoDeSeguranca"}]
+            }]
+			}
+		}
+	},
+	"Outputs": {
+		"EnderecoPublico": {
+			"Value": {"Fn::GetAtt": ["Servidor", "PublicIp"]},
+			"Description": "Endereco para acessar o servidor"
+		},
+      "EnderecoPrivado": {
+         "Value": {"Fn::GetAtt": ["Servidor", "PrivateIp"]},
+         "Description": "Endereco interno do servidor"
+      }
+	}
+}

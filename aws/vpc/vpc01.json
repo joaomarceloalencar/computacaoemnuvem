@@ -1,0 +1,26 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Criacao de um VPC",
+	"Parameters": {
+		"FaixaIP": {
+			"Description": "Faixa IP Utilizada no VPC",
+			"Type": "String",
+			"Default": "10.0.0.0/16",
+         "AllowedValues": ["10.0.0.0/16", "172.16.0.0/16", "192.168.0.0/16"]
+		}
+   },
+	"Resources": {
+		"NovoVPC": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+            "CidrBlock": {"Ref": "FaixaIP"}
+			}
+		}
+	},
+	"Outputs": {
+      "CidrBlock": {
+         "Value": {"Fn::GetAtt": ["NovoVPC", "CidrBlock"]},
+         "Description": "Bloco de Enderecos do VPC"
+      }
+	}
+}

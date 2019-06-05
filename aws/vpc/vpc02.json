@@ -1,0 +1,56 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Criacao de um VPC e uma Subrede",
+	"Parameters": {
+		"FaixaIPVPC": {
+			"Description": "Faixa IP Utilizada no VPC",
+			"Type": "String",
+			"Default": "10.0.0.0/16",
+         "AllowedValues": ["10.0.0.0/16", "172.16.0.0/16", "192.168.0.0/16"]
+		},
+		"FaixaIPSubrede": {
+			"Description": "Faixa IP Utilizada na Subrede",
+			"Type": "String",
+			"Default": "10.0.10.0/24",
+         "AllowedValues": ["10.0.10.0/24", "172.16.10.0/24", "192.168.10.0/24"]
+		},
+      "ZonaSubrede": {
+         "Description": "Zona da Subrede",
+         "Type": "Number",
+         "Default": 1
+      }
+   },
+	"Resources": {
+		"NovoVPC": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+            "CidrBlock": {"Ref": "FaixaIPVPC"}
+			}
+		},
+      "NovaSubrede": {
+         "Type": "AWS::EC2::Subnet",
+         "Properties": {
+            "VpcId": {"Ref": "NovoVPC"},
+            "CidrBlock": {"Ref": "FaixaIPSubrede"},
+            "AvailabilityZone": {
+               "Fn::Select" : [
+                  {"Ref": "ZonaSubrede"},
+                  {
+                     "Fn::GetAZs": ""
+                  }
+               ]
+            } 
+         }
+      }
+	},
+	"Outputs": {
+      "CidrBlockVPC": {
+         "Value": {"Fn::GetAtt": ["NovoVPC", "CidrBlock"]},
+         "Description": "Bloco de Enderecos do VPC"
+      },
+      "CidrBlockVpcId": {
+         "Value": {"Fn::GetAtt": ["NovaSubrede", "VpcId"]},
+         "Description": "VPC da Subrede"
+      }
+	}
+}

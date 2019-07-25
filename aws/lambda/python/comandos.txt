@@ -1,0 +1,21 @@
+# Instalar pacotes Python em um Diretório Específico
+pip install --system --target ./package Pillow
+
+# Adicionar conteúdo do diretório corrente em um .zip no diretório anterior
+zip -r9 ${OLDPWD}/function.zip .
+
+# Adicionar um arquivo a um zip existente.
+zip -g function.zip function.py
+
+# Criar nova função
+aws lambda create-function --function new_function --runtime python3.7 --role arn:aws:iam::************:role/lambda-role --handle function.lambda_handler --zip-file fileb://function.zip
+
+# Atualizar código da função
+aws lambda update-function-code --function-name new_function --zip-file fileb://function.zip
+
+# Invocar a função
+aws lambda invoke --function-name new_function out --log-type Tail --query 'LogResult' --output text | base64 -d
+
+# Invocar a função com parâmetro a ser recuperado no event.
+aws lambda invoke --function-name new_function out --payload '{"bucket_name":"jmhal"}' --log-type Tail --query 'LogResult' --output text | base64 -d
+

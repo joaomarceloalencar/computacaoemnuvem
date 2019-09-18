@@ -9,7 +9,7 @@ pip3 install flask flask-wtf
 sudo -i -u ubuntu bash<<EOF
 cd ~ubuntu
 git clone https://github.com/jmhal/computacaoemnuvem
-cd /computacaoemnuvem/aws/treinamentoaws/python/hello_world
-export FLASH_APP=hello_world.py
-flask run --host=0.0.0.0
+cd computacaoemnuvem/aws/treinamentoaws/python/hello_world
+export FLASK_APP=hello_world.py
+flask run --host=0.0.0.0 &
 EOF

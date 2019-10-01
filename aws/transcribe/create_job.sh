@@ -5,7 +5,7 @@ ARQUIVO=$1
 BUCKET=$2
 
 # Colocar o arquivo no Bucket
-#aws s3 cp $ARQUIVO s3://$BUCKET/
+aws s3 cp $ARQUIVO s3://$BUCKET/
 
 # Criar JSON para o JOB
 HORARIO=`date +%H%M%S`

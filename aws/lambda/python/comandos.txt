@@ -19,3 +19,19 @@ aws lambda invoke --function-name new_function out --log-type Tail --query 'LogR
 # Invocar a função com parâmetro a ser recuperado no event.
 aws lambda invoke --function-name new_function out --payload '{"bucket_name":"jmhal"}' --log-type Tail --query 'LogResult' --output text | base64 -d
 
+# Listar os grupos de logs (incluem as funções)
+aws logs describe-log-groups
+
+# Listar os fluxos de logs para uma função
+aws logs describe-log-streams --log-group-name /aws/lambda/NOMEDAFUNCAO
+
+# Listar os fluxos de logs para uma função, ordenados por tempo 
+aws logs describe-log-streams --log-group-name /aws/lambda/NOMEDAFUNCAO --order-by LastEventTime
+
+# Pegar o último fluxo da função (bom para depurar)
+aws logs describe-log-streams --log-group-name /aws/lambda/NOMEDAFUNCAO --order-by LastEventTime --descending --max-items 1                   
+aws logs describe-log-streams --log-group-name /aws/lambda/NOMEDAFUNCAO --order-by LastEventTime --descending --max-items 1 | jq .logStreams[0].logStreamName
+aws logs describe-log-streams --log-group-name /aws/lambda/NOMEDAFUNCAO --order-by LastEventTime --descending --max-items 1 | jq .logStreams[0].logStreamName | sed 's/\"//g'
+
+# Mostrar o último fluxo (LASTSTRAM é o resultado do último comando acima.)
+aws logs get-log-events --log-group-name /aws/lambda/NOMEDAFUNCAO --log-stream-name $LASTSTREAM

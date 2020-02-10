@@ -38,6 +38,31 @@ aws lambda delete-function --function-name my-function
 aws lambda invoke --function-name function1 out --log-type Tail \
 --payload '{"name": "Jose da Silva"}' \
 --query 'LogResult' --output text |  base64 -d
+cat out
+```
+
+### Função 2
+```bash
+aws lambda invoke --function-name function2 out --log-type Tail \
+--payload '{ "What is your name?": "Jose da Silva", "How old are you?": 33 }' \
+--query 'LogResult' --output text |  base64 -d
+cat out
+```
+
+### Função 3
+```bash
+aws lambda invoke --function-name function3 out --log-type Tail \
+--query 'LogResult' --output text |  base64 -d
+cat out
+```
+
+Para esta função executar com sucesso, é necessário trocar _bucketName_ na linha 17 por um _bucket_ válido no S3, na mesma região da função. 
+
+### Função 4
+```bash
+aws lambda invoke --function-name function4 out --log-type Tail \
+--query 'LogResult' --output text |  base64 -d
+cat out
 ```
 
 ### Recuperar o último _log_ de qualquer função.

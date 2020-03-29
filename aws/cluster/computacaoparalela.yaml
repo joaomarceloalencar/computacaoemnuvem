@@ -1,0 +1,153 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: ' A simple template for a simple cluster.'
+
+Parameters:
+   InstanceTypeParameter:
+      Type: String
+      Default: t2.micro
+      AllowedValues:
+         - t2.nano
+         - t2.micro
+         - t2.small
+         - t2.medium
+         - t2.large
+         - t2.xlarge
+         - t2.2xlarge
+      Description: 'Instance type.'
+
+   ClusterKeyNameParameter:
+      Description: 'The EC2 Key Pair to allow SSH access to the cluster master node.'
+      Type: 'AWS::EC2::KeyPair::KeyName'
+
+   ClusterAvailabilityZoneParameter:
+      Description: "The Availability Zone for the cluster."
+      Type: String
+      Default: "us-east-1a"
+
+   ClusterVPCParameter:
+      Description: "The VPC for the Cluster."
+      Type: "AWS::EC2::VPC::Id"
+
+   ClusterPublicSubnetParameter:
+      Description: "The Public Subnet for the Cluster."
+      Type: "AWS::EC2::Subnet::Id"
+                 
+Mappings:
+   RegionMap:
+      "us-east-1":
+         "ubuntu1804": "ami-0a313d6098716f372"
+      "us-west-1":  
+         "ubuntu1804": "ami-06397100adf427136"
+      "sa-east-1":
+         "ubuntu1804": "ami-09f4cd7c0b533b081"
+         
+Resources:
+   MasterNode:
+      Type: 'AWS::EC2::Instance'
+      Properties:
+         InstanceType: !Ref InstanceTypeParameter
+         ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", ubuntu1804]
+         KeyName: !Ref ClusterKeyNameParameter
+         Tags:
+             -
+                 Key: Name
+                 Value: "MasterNode"
+         NetworkInterfaces:
+            - GroupSet:
+               - !Ref ClusterSecurityGroup 
+              AssociatePublicIpAddress: 'true'
+              DeviceIndex: '0'
+              DeleteOnTermination: 'true'
+              SubnetId: !Ref ClusterPublicSubnetParameter
+         UserData: 
+              Fn::Base64: 
+                  !Sub |    
+                      #!/bin/bash -ex      
+                      apt-get update
+                      apt-get -y install nfs-kernel-server
+
+                      # Criar Chave SSH
+                      ssh-keygen -t rsa -q -f /home/ubuntu/.ssh/id_rsa -N ""
+                      cat /home/ubuntu/.ssh/id_rsa.pub >> /home/ubuntu/.ssh/authorized_keys
+
+                      # Recuperar Rede Local
+                      LOCAL_NETWORK=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4 | sed -E 's#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#\1\.\2\.0\.0\n#')
+                      LOCAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)                                        
+
+                      # Exportar o diretório
+                      echo "/home $LOCAL_NETWORK/16(rw,sync,no_root_squash,no_subtree_check)" > /etc/exports
+
+                      # Reiniciar o serviço
+                      systemctl restart nfs-kernel-server
+
+                      # Configurar OpenMPI
+                      apt-get -y install libopenmpi-dev
+                      SLOTS=$(cat /proc/cpuinfo  | grep processor | wc -l)
+                      echo "$LOCAL_IP slots=$SLOTS" >> /home/hostfile
+                      cat <<EOF > /home/ubuntu/.ssh/config
+                      Host *
+                         StrictHostKeyChecking no
+                      EOF
+                      echo "export OMPI_MCA_btl_base_warn_component_unused=0" >> /home/ubuntu/.bashrc
+                      chown -R  ubuntu.ubuntu /home/ubuntu/
+
+   SlaveNode:
+      Type: 'AWS::EC2::Instance'
+      DependsOn: MasterNode
+      Properties:
+         InstanceType: !Ref InstanceTypeParameter
+         ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", ubuntu1804]
+         KeyName: !Ref ClusterKeyNameParameter
+         Tags:
+             -
+                 Key: Name
+                 Value: "SlaveNode"
+         NetworkInterfaces:
+            - GroupSet:
+               - !Ref ClusterSecurityGroup 
+              AssociatePublicIpAddress: 'true'
+              DeviceIndex: '0'
+              DeleteOnTermination: 'true'
+              SubnetId: !Ref ClusterPublicSubnetParameter
+         UserData: 
+              Fn::Base64: 
+                  Fn::Sub:
+                      - |
+                        #!/bin/bash -ex
+                        apt-get update
+                        apt-get -y install nfs-common libopenmpi-dev
+
+                        mount ${MasterIp}:/home /home
+   
+                        LOCAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)                                        
+                        SLOTS=$(cat /proc/cpuinfo  | grep processor | wc -l)
+                        echo "$LOCAL_IP slots=$SLOTS" >> /home/hostfile
+
+                      - MasterIp: !GetAtt MasterNode.PrivateIp
+                       
+                    
+   ClusterSecurityGroup:
+      Type: 'AWS::EC2::SecurityGroup'
+      Properties:
+         VpcId: !Ref ClusterVPCParameter
+         GroupDescription: 'Enable SSH access via port 22 and all other ports inside the VPC.'
+         SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: 0.0.0.0/0  
+
+   ClusterSecurityGroupInboundRule:
+      Type: 'AWS::EC2::SecurityGroupIngress'
+      Properties:
+          GroupId: !GetAtt ClusterSecurityGroup.GroupId
+          IpProtocol: "-1"
+          FromPort: '0'
+          ToPort: '65535'
+          SourceSecurityGroupId: !GetAtt ClusterSecurityGroup.GroupId
+ 
+Outputs:
+   PublicAddress:
+      Description: Public IP of the Instance.
+      Value: !GetAtt MasterNode.PublicIp

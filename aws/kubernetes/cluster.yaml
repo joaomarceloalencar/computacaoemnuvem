@@ -1,0 +1,336 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template para Criacao de um Cluster Kubernetes
+
+Parameters:
+  FaixaIPdoVPC:
+    Description: Faixa IP a ser Utilizada no VPC
+    Type: String
+    Default: 10.240.0.0/16
+  FaixaIPdaSubRede:
+    Description: Faixa IP a ser utiliza na SubRede
+    Type: String
+    Default: 10.240.0.0/24
+  ZonaSubRede:
+    Description: Zona da SubRede 
+    Type: Number
+    Default: 1
+  KeyName:
+    Description: Nome do par de Chaves
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: saturn
+  InstanceType:
+    Description: Tipo de Instancia
+    Type: String
+    Default: t3.medium
+Mappings:
+  RegionMap:
+    us-east-1:
+      "Ubuntu2004": "ami-0885b1f6bd170450c"
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: FaixaIPdoVPC
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: Kubernetes
+  SubRede:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: 
+        Fn::Select: [ 
+          Ref: ZonaSubRede, 
+          Fn::GetAZs: '' 
+        ]
+      VpcId:
+        Ref: VPC
+      CidrBlock: 
+        Ref:
+          FaixaIPdaSubRede
+      Tags:
+        - Key: Name
+          Value: Publica
+  RoteadorInternet:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Kubernetes
+  LigacaoRoteadorVPC:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: 
+        Ref: VPC
+      InternetGatewayId: 
+        Ref: RoteadorInternet 
+  IPElastico:
+    Type: AWS::EC2::EIP
+    DependsOn: LigacaoRoteadorVPC
+    Properties:
+      Domain: vpc
+  NAT:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt: [
+          IPElastico,
+          AllocationId
+        ]
+      SubnetId:
+        Ref: SubRede
+      Tags:
+        - Key: Name 
+          Value: Kubernetes 
+  TabelaRoteamentoRede:
+    Type: AWS::EC2::RouteTable 
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: Name 
+          Value: Kubernetes
+  RotaRede:
+    Type: AWS::EC2::Route 
+    Properties: 
+      GatewayId: 
+        Ref: RoteadorInternet 
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: 
+        Ref: TabelaRoteamentoRede
+  AssociacaoTabelaSubRede:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubRede
+      RouteTableId:
+        Ref: TabelaRoteamentoRede
+  GrupoDeSeguranca:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: Kubernetes
+      GroupDescription:  Grupo de Seguranca do Cluster Kuberentes
+      VpcId:
+        Ref: VPC
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 22
+          IpProtocol: tcp 
+          ToPort: 22
+      Tags:
+        - Key: Name
+          Value: Kubernetes
+  RegraEntradaGrupoDeSeguranca:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: GrupoDeSeguranca
+    Properties:
+      GroupId:
+        Ref: GrupoDeSeguranca
+      IpProtocol: -1
+      FromPort: -1
+      ToPort: -1
+      SourceSecurityGroupId:
+        Ref: GrupoDeSeguranca
+  controller0:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName:
+        Ref: KeyName
+      ImageId: 
+        Fn::FindInMap:
+          - RegionMap
+          - Ref: 'AWS::Region'
+          - Ubuntu2004
+      InstanceType:
+        Ref: InstanceType  
+      Tags:
+        - Key: Name
+          Value: controller-0
+      NetworkInterfaces:
+        - PrivateIpAddress: 10.240.0.10
+          AssociatePublicIpAddress: true 
+          DeleteOnTermination: true 
+          SubnetId:
+            Ref: SubRede 
+          DeviceIndex: 0
+          GroupSet:
+            - Ref: GrupoDeSeguranca
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 40
+      UserData: 
+        Fn::Base64: 
+          Fn::Sub: |
+            #!/bin/bash -ex
+            # put your script here
+  controller1:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName:
+        Ref: KeyName
+      ImageId: 
+        Fn::FindInMap:
+          - RegionMap
+          - Ref: 'AWS::Region'
+          - Ubuntu2004
+      InstanceType:
+        Ref: InstanceType  
+      Tags:
+        - Key: Name
+          Value: controller-1
+      NetworkInterfaces:
+        - PrivateIpAddress: 10.240.0.11
+          AssociatePublicIpAddress: false 
+          DeleteOnTermination: true 
+          SubnetId:
+            Ref: SubRede 
+          DeviceIndex: 0
+          GroupSet:
+            - Ref: GrupoDeSeguranca
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 40
+      UserData: 
+        Fn::Base64: 
+          Fn::Sub: |
+            #!/bin/bash -ex
+            # put your script here
+  controller2:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName:
+        Ref: KeyName
+      ImageId: 
+        Fn::FindInMap:
+          - RegionMap
+          - Ref: 'AWS::Region'
+          - Ubuntu2004
+      InstanceType:
+        Ref: InstanceType  
+      Tags:
+        - Key: Name
+          Value: controller-2
+      NetworkInterfaces:
+        - PrivateIpAddress: 10.240.0.12
+          AssociatePublicIpAddress: false 
+          DeleteOnTermination: true 
+          SubnetId:
+            Ref: SubRede 
+          DeviceIndex: 0
+          GroupSet:
+            - Ref: GrupoDeSeguranca
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 40      
+      UserData: 
+        Fn::Base64: 
+          Fn::Sub: |
+            #!/bin/bash -ex
+            # put your script here
+  worker0:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName:
+        Ref: KeyName
+      ImageId: 
+        Fn::FindInMap:
+          - RegionMap
+          - Ref: 'AWS::Region'
+          - Ubuntu2004
+      InstanceType:
+        Ref: InstanceType  
+      Tags:
+        - Key: Name
+          Value: worker-0
+      NetworkInterfaces:
+        - PrivateIpAddress: 10.240.0.20
+          AssociatePublicIpAddress: true 
+          DeleteOnTermination: true 
+          SubnetId:
+            Ref: SubRede 
+          DeviceIndex: 0
+          GroupSet:
+            - Ref: GrupoDeSeguranca
+      UserData: 
+        Fn::Base64: 
+          Fn::Sub: |
+            #!/bin/bash -ex
+            # put your script here
+  worker1:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName:
+        Ref: KeyName
+      ImageId: 
+        Fn::FindInMap:
+          - RegionMap
+          - Ref: 'AWS::Region'
+          - Ubuntu2004
+      InstanceType:
+        Ref: InstanceType  
+      Tags:
+        - Key: Name
+          Value: worker-1
+      NetworkInterfaces:
+        - PrivateIpAddress: 10.240.0.21
+          AssociatePublicIpAddress: false 
+          DeleteOnTermination: true 
+          SubnetId:
+            Ref: SubRede 
+          DeviceIndex: 0
+          GroupSet:
+            - Ref: GrupoDeSeguranca
+      UserData: 
+        Fn::Base64: 
+          Fn::Sub: |
+            #!/bin/bash -ex
+            # put your script here
+  worker2:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName:
+        Ref: KeyName
+      ImageId: 
+        Fn::FindInMap:
+          - RegionMap
+          - Ref: 'AWS::Region'
+          - Ubuntu2004
+      InstanceType:
+        Ref: InstanceType  
+      Tags:
+        - Key: Name
+          Value: worker-2
+      NetworkInterfaces:
+        - PrivateIpAddress: 10.240.0.22
+          AssociatePublicIpAddress: false 
+          DeleteOnTermination: true 
+          SubnetId:
+            Ref: SubRede 
+          DeviceIndex: 0
+          GroupSet:
+            - Ref: GrupoDeSeguranca
+      UserData: 
+        Fn::Base64: 
+          Fn::Sub: |
+            #!/bin/bash -ex
+            # put your script here
+
+
+Outputs:
+  EnderecoPublico:
+    Value:
+      Fn::GetAtt: [
+        controller0,
+        PublicIp
+      ]
+        
+           
+    Description: Endereco para acessar o controller-0

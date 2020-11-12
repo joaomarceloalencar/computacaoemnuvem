@@ -19,66 +19,108 @@
 			"Description": "Tipo de instancia",
 			"Type": "String",
 			"Default": "t2.micro",
-			"AllowedValues": ["t2.micro", "t2.small", "t2.medium"]
+			"AllowedValues": [
+				"t2.micro",
+				"t2.small",
+				"t2.medium"
+			]
 		},
-      "NomeDoSite" :{
-         "Description": "Nome do Site",
-         "Type": "String",
-         "Default" : "Topicos Avancados"
-      },
-      "ImageId": {
-         "Description": "Identificador da Imagem",
-         "Type": "String",
-         "Default": "ami-024a64a6685d05041"
-      }
+		"NomeDoSite": {
+			"Description": "Nome do Site",
+			"Type": "String",
+			"Default": "Topicos Avancados"
+		},
+		"ImageId": {
+			"Description": "Identificador da Imagem",
+			"Type": "String",
+			"Default": "ami-024a64a6685d05041"
+		}
 	},
 	"Resources": {
 		"GrupoDeSegurancaServidorWeb": {
 			"Type": "AWS::EC2::SecurityGroup",
 			"Properties": {
 				"GroupDescription": "Grupo de Seguranca para um Servidor Web",
-				"VpcId": {"Ref": "VPC"},
-				"SecurityGroupIngress": [{
-					"CidrIp": "0.0.0.0/0",
-					"FromPort": 80,
-					"IpProtocol": "tcp",
-					"ToPort": 80
-				}, {
-   				"CidrIp": "0.0.0.0/0",
-					"FromPort": 22,
-					"IpProtocol": "tcp",
-					"ToPort": 22
-            }]
+				"VpcId": {
+					"Ref": "VPC"
+				},
+				"SecurityGroupIngress": [
+					{
+						"CidrIp": "0.0.0.0/0",
+						"FromPort": 80,
+						"IpProtocol": "tcp",
+						"ToPort": 80
+					},
+					{
+						"CidrIp": "0.0.0.0/0",
+						"FromPort": 22,
+						"IpProtocol": "tcp",
+						"ToPort": 22
+					}
+				]
 			}
 		},
 		"ServidorWeb": {
 			"Type": "AWS::EC2::Instance",
 			"Properties": {
-				"ImageId": {"Ref":"ImageId"},
-				"InstanceType": {"Ref": "InstanceType"},
-				"KeyName": {"Ref": "KeyName"},
-				"SecurityGroupIds": [{"Ref": "GrupoDeSegurancaServidorWeb"}],
-				"SubnetId": {"Ref": "Subnet"},
-            "UserData": {"Fn::Base64": { "Fn::Join": ["", [
-               "#!/bin/bash -ex \n",
-               "export NOME=\"", {"Ref":"NomeDoSite"}, "\"\n",
-               "apt-get update \n",
-               "apt-get install -y apache2 \n",
-               "systemctl enable apache2 \n",
-               "systemctl start apache2 \n",
-               "echo \"$NOME\" > /var/www/html/index.html \n"
-            ]]}}
+				"ImageId": {
+					"Ref": "ImageId"
+				},
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"KeyName": {
+					"Ref": "KeyName"
+				},
+				"SecurityGroupIds": [
+					{
+						"Ref": "GrupoDeSegurancaServidorWeb"
+					}
+				],
+				"SubnetId": {
+					"Ref": "Subnet"
+				},
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [
+							"",
+							[
+								"#!/bin/bash -ex \n",
+								"export NOME=\"",
+								{
+									"Ref": "NomeDoSite"
+								},
+								"\"\n",
+								"apt-get update \n",
+								"apt-get install -y apache2 \n",
+								"systemctl enable apache2 \n",
+								"systemctl start apache2 \n",
+								"echo \"$NOME\" > /var/www/html/index.html \n"
+							]
+						]
+					}
+				}
 			}
 		}
 	},
 	"Outputs": {
 		"EnderecoPublico": {
-			"Value": {"Fn::GetAtt": ["ServidorWeb", "PublicIp"]},
+			"Value": {
+				"Fn::GetAtt": [
+					"ServidorWeb",
+					"PublicIp"
+				]
+			},
 			"Description": "Endereco para acessar o servidor"
 		},
-      "EnderecoPrivado": {
-         "Value": {"Fn::GetAtt": ["ServidorWeb", "PrivateIp"]},
-         "Description": "Endereco interno do servidor"
-      }
+		"EnderecoPrivado": {
+			"Value": {
+				"Fn::GetAtt": [
+					"ServidorWeb",
+					"PrivateIp"
+				]
+			},
+			"Description": "Endereco interno do servidor"
+		}
 	}
 }

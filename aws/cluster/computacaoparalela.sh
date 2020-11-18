@@ -73,3 +73,4 @@ read -p "Primeira vez."
 read -p "Segunda vez."
 aws cloudformation delete-stack --stack-name $STACKNAME
 
+# ssh  -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" ubuntu@3.228.15.71

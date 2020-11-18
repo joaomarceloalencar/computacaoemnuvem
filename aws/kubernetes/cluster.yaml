@@ -34,6 +34,7 @@ Resources:
       CidrBlock:
         Ref: FaixaIPdoVPC
       EnableDnsSupport: true
+      EnableDnsHostnames: true
       Tags:
         - Key: Name
           Value: Kubernetes
@@ -52,7 +53,7 @@ Resources:
           FaixaIPdaSubRede
       Tags:
         - Key: Name
-          Value: Publica
+          Value: Kubernetes
   RoteadorInternet:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -119,6 +120,20 @@ Resources:
           FromPort: 22
           IpProtocol: tcp 
           ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          FromPort: 6443
+          IpProtocol: tcp 
+          ToPort: 6443
+        - CidrIp: 0.0.0.0/0
+          FromPort: 443
+          IpProtocol: tcp 
+          ToPort: 443
+        - CidrIp: 0.0.0.0/0
+          FromPort: -1
+          IpProtocol: icmp 
+          ToPort: -1
+        - CidrIp: 192.168.0.0/16
+          IpProtocol: -1
       Tags:
         - Key: Name
           Value: Kubernetes
@@ -133,6 +148,42 @@ Resources:
       ToPort: -1
       SourceSecurityGroupId:
         Ref: GrupoDeSeguranca
+
+  BalanceadorDeCarga:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer 
+    Properties:
+      Name: "Kubernetes"
+      Type: "network"
+      Subnets:
+        - Ref: SubRede 
+      Scheme: "internet-facing"
+  
+  GrupoAlvo:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup 
+    Properties:
+      Name: "Kubernetes"
+      Protocol: "TCP"
+      Port: 6443
+      VpcId:
+        Ref: VPC
+      TargetType: "ip" 
+      Targets:
+        - Id: 10.240.0.10
+        - Id: 10.240.0.11
+        - Id: 10.240.0.12
+
+  Ouvinte:
+    Type: AWS::ElasticLoadBalancingV2::Listener 
+    Properties:
+      LoadBalancerArn:
+        Ref: BalanceadorDeCarga
+      Protocol: "TCP" 
+      Port: 443
+      DefaultActions:
+        - Type: "forward"
+          TargetGroupArn:
+            Ref: GrupoAlvo 
+
   controller0:
     Type: AWS::EC2::Instance
     Properties:
@@ -157,6 +208,7 @@ Resources:
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
+      SourceDestCheck: false
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -166,7 +218,21 @@ Resources:
         Fn::Base64: 
           Fn::Sub: |
             #!/bin/bash -ex
-            # put your script here
+            
+            # Configura o hostname
+            hostname controller-0
+            echo "controller-0" > /etc/hostname
+
+            # Configura a resolução de nomes
+            cat>> /etc/hosts <<EOF
+            10.240.0.10 controller-0  
+            10.240.0.11 controller-1 
+            10.240.0.12 controller-2 
+            10.240.0.20 worker-0 
+            10.240.0.21 worker-1 
+            10.240.0.22 worker-2 
+            EOF
+
   controller1:
     Type: AWS::EC2::Instance
     Properties:
@@ -184,13 +250,14 @@ Resources:
           Value: controller-1
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.11
-          AssociatePublicIpAddress: false 
+          AssociatePublicIpAddress: true 
           DeleteOnTermination: true 
           SubnetId:
             Ref: SubRede 
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
+      SourceDestCheck: false
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -200,7 +267,21 @@ Resources:
         Fn::Base64: 
           Fn::Sub: |
             #!/bin/bash -ex
-            # put your script here
+            
+            # Configura o hostname
+            hostname controller-1
+            echo "controller-1" > /etc/hostname
+
+            # Configura a resolução de nomes
+            cat>> /etc/hosts <<EOF
+            10.240.0.10 controller-0  
+            10.240.0.11 controller-1 
+            10.240.0.12 controller-2 
+            10.240.0.20 worker-0 
+            10.240.0.21 worker-1 
+            10.240.0.22 worker-2 
+            EOF
+
   controller2:
     Type: AWS::EC2::Instance
     Properties:
@@ -218,13 +299,14 @@ Resources:
           Value: controller-2
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.12
-          AssociatePublicIpAddress: false 
+          AssociatePublicIpAddress: true 
           DeleteOnTermination: true 
           SubnetId:
             Ref: SubRede 
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
+      SourceDestCheck: false
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -234,7 +316,21 @@ Resources:
         Fn::Base64: 
           Fn::Sub: |
             #!/bin/bash -ex
-            # put your script here
+            
+            # Configura o hostname
+            hostname controller-2
+            echo "controller-2" > /etc/hostname
+
+            # Configura a resolução de nomes
+            cat>> /etc/hosts <<EOF
+            10.240.0.10 controller-0  
+            10.240.0.11 controller-1 
+            10.240.0.12 controller-2 
+            10.240.0.20 worker-0 
+            10.240.0.21 worker-1 
+            10.240.0.22 worker-2 
+            EOF
+
   worker0:
     Type: AWS::EC2::Instance
     Properties:
@@ -259,11 +355,26 @@ Resources:
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
+      SourceDestCheck: false
       UserData: 
         Fn::Base64: 
           Fn::Sub: |
             #!/bin/bash -ex
-            # put your script here
+            
+            # Configura o hostname
+            hostname worker-0
+            echo "worker-0" > /etc/hostname
+
+            # Configura a resolução de nomes
+            cat>> /etc/hosts <<EOF
+            10.240.0.10 controller-0  
+            10.240.0.11 controller-1 
+            10.240.0.12 controller-2 
+            10.240.0.20 worker-0 
+            10.240.0.21 worker-1 
+            10.240.0.22 worker-2 
+            EOF
+
   worker1:
     Type: AWS::EC2::Instance
     Properties:
@@ -281,18 +392,33 @@ Resources:
           Value: worker-1
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.21
-          AssociatePublicIpAddress: false 
+          AssociatePublicIpAddress: true 
           DeleteOnTermination: true 
           SubnetId:
             Ref: SubRede 
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
+      SourceDestCheck: false
       UserData: 
         Fn::Base64: 
           Fn::Sub: |
             #!/bin/bash -ex
-            # put your script here
+            
+            # Configura o hostname
+            hostname worker-1
+            echo "worker-1" > /etc/hostname
+
+            # Configura a resolução de nomes
+            cat>> /etc/hosts <<EOF
+            10.240.0.10 controller-0  
+            10.240.0.11 controller-1 
+            10.240.0.12 controller-2 
+            10.240.0.20 worker-0 
+            10.240.0.21 worker-1 
+            10.240.0.22 worker-2 
+            EOF
+
   worker2:
     Type: AWS::EC2::Instance
     Properties:
@@ -310,27 +436,113 @@ Resources:
           Value: worker-2
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.22
-          AssociatePublicIpAddress: false 
+          AssociatePublicIpAddress: true 
           DeleteOnTermination: true 
           SubnetId:
             Ref: SubRede 
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
+      SourceDestCheck: false
       UserData: 
         Fn::Base64: 
           Fn::Sub: |
             #!/bin/bash -ex
-            # put your script here
+            
+            # Configura o hostname
+            hostname worker-2
+            echo "worker-2" > /etc/hostname
+
+            # Configura a resolução de nomes
+            cat>> /etc/hosts <<EOF
+            10.240.0.10 controller-0  
+            10.240.0.11 controller-1 
+            10.240.0.12 controller-2 
+            10.240.0.20 worker-0 
+            10.240.0.21 worker-1 
+            10.240.0.22 worker-2 
+            EOF
 
 
 Outputs:
-  EnderecoPublico:
+  EnderecoPublicoKubernetes:
+    Value:
+      Fn::GetAtt: [
+        BalanceadorDeCarga,
+        DNSName
+      ]
+
+  EnderecoPublicoController0:
     Value:
       Fn::GetAtt: [
         controller0,
         PublicIp
       ]
+  EnderecoPrivadoController0:
+    Value:
+      Fn::GetAtt: [
+        controller0,
+        PrivateIp
+      ]
+  EnderecoPublicoController1:
+    Value:
+      Fn::GetAtt: [
+        controller1,
+        PublicIp
+      ]
+  EnderecoPrivadoController1:
+    Value:
+      Fn::GetAtt: [
+        controller1,
+        PrivateIp
+      ]
+  EnderecoPublicoController2:
+    Value:
+      Fn::GetAtt: [
+        controller2,
+        PublicIp
+      ]
+  EnderecoPrivadoController2:
+    Value:
+      Fn::GetAtt: [
+        controller2,
+        PrivateIp
+      ]
+  EnderecoPublicoWorker0:
+    Value:
+      Fn::GetAtt: [
+        worker0,
+        PublicIp
+      ]
+  EnderecoPrivadoWorker0:
+    Value:
+      Fn::GetAtt: [
+        worker0,
+        PrivateIp
+      ]
+  EnderecoPublicoWorker1:
+    Value:
+      Fn::GetAtt: [
+        worker1,
+        PublicIp
+      ]
+  EnderecoPrivadoWorker1:
+    Value:
+      Fn::GetAtt: [
+        worker1,
+        PrivateIp
+      ]
+  EnderecoPublicoWorker2:
+    Value:
+      Fn::GetAtt: [
+        worker2,
+        PublicIp
+      ]
+  EnderecoPrivadoWorker2:
+    Value:
+      Fn::GetAtt: [
+        worker2,
+        PrivateIp
+      ]
         
            
-    Description: Endereco para acessar o controller-0

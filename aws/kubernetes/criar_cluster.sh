@@ -182,7 +182,7 @@ for instance in worker-0 worker-1 worker-2; do
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=$KUBE_CONFIG_DIR/certs/ca.pem \
     --embed-certs=true \
-    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443 \
+    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:443 \
     --kubeconfig=$KUBE_CONFIG_DIR/config/${instance}.kubeconfig
 
   kubectl config set-credentials system:node:${instance} \
@@ -202,7 +202,7 @@ logger "Gerando Arquivo de Configuração do Kube-Proxy"
 kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=$KUBE_CONFIG_DIR/certs/ca.pem \
     --embed-certs=true \
-    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443 \
+    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:443 \
     --kubeconfig=$KUBE_CONFIG_DIR/config/kube-proxy.kubeconfig
 
 kubectl config set-credentials system:kube-proxy \
@@ -340,6 +340,7 @@ done
 
 logger "Configurando a Autorização RBAC"
 copiar "$BASE_DIR/scripts/rbac.sh" "${CONTROLLER_IP_PUBLICO[0]}"
+executar "${CONTROLLER_IP_PUBLICO[0]}" "chmod +x ./rbac.sh"
 executar "${CONTROLLER_IP_PUBLICO[0]}" "./rbac.sh"
 read -p "Aperte ENTER para continuar ou CTRL-C em caso de erro."
 

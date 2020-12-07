@@ -103,7 +103,7 @@ cfssl gencert \
     -profile=kubernetes \
     $CERT_CONF_DIR/admin-csr.json | cfssljson -bare admin
 
-logger "Gerando Certificados dos Clientes Kubelets."
+logger "Gerando Certificados dos Workers Kubelets."
 for instance in 0 1 2
 do 
     logger "Certificado para o worker-$instance:"

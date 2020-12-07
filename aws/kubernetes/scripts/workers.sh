@@ -26,13 +26,14 @@ sudo mkdir -p \
   /var/run/kubernetes
 
 # Instalar os Binárias
-chmod +x kubectl kube-proxy kubelet runc.amd64 runsc
-sudo mv runc.amd64 runc
-sudo mv kubectl kube-proxy kubelet runc runsc /usr/local/bin/
 sudo tar -xvf crictl-v1.18.0-linux-amd64.tar.gz -C /usr/local/bin/
+sudo mv runc.amd64 runc
+sudo mv runsc runc kubectl kube-proxy kubelet /usr/local/bin/
 sudo tar -xvf cni-plugins-linux-amd64-v0.8.6.tgz -C /opt/cni/bin/
 sudo tar -xvf containerd-1.3.6-linux-amd64.tar.gz
 sudo mv bin/* /bin/
+chmod +x kubectl kube-proxy kubelet runc.amd64 runsc
+
 
 # Criar a Bridge
 POD_CIDR="192.168.$(echo $HOSTNAME | cut -f 2 -d'-').0/24"

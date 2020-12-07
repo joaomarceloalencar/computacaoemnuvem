@@ -1,0 +1,61 @@
+---
+- hosts: localhost
+  roles:
+    - client
+  vars: 
+    - kube_dir: "kubernetes"
+    - cluster_template: "../cluster.yaml"
+    - stack_name: "kubernetes"
+    - region: "us-east-1"
+    - keypair: "saturn"
+    - instance_type: "t3.medium"
+
+- hosts: controllers
+  become: yes
+  roles:
+    - controller
+  vars: 
+    - kube_dir: "kubernetes"
+    - ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+    - ansible_user: ubuntu
+
+- hosts: workers
+  become: yes
+  roles:
+    - workers
+  vars: 
+    - kube_dir: "kubernetes"
+    - ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+    - ansible_user: ubuntu
+    - stack_name: "kubernetes"
+    - region: "us-east-1"
+
+
+# - hosts: controllers
+#   gather_facts: false
+#   vars:
+#     ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+#     ansible_user: ubuntu
+#   become: true
+#   tasks:
+#     - name: wait for instances to become available
+#       wait_for_connection:
+#     - name: Gather facts for first time
+#       setup:     
+#     - name: Update apt
+#       apt: update_cache=yes
+
+# - hosts: workers
+#   gather_facts: false
+#   vars:
+#     ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+#     ansible_user: ubuntu
+#   become: true
+#   tasks:   
+#     - name: wait for instances to become available
+#       wait_for_connection:
+#     - name: Gather facts for first time
+#       setup: 
+#     - name: Update apt
+#       apt: update_cache=yes
+

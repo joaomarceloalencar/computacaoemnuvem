@@ -11,7 +11,7 @@ Parameters:
     Type: String
     Default: 10.240.0.0/24
   ZonaSubRede:
-    Description: Zona da SubRede 
+    Description: Zona da SubRede
     Type: Number
     Default: 1
   KeyName:
@@ -41,16 +41,12 @@ Resources:
   SubRede:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: 
-        Fn::Select: [ 
-          Ref: ZonaSubRede, 
-          Fn::GetAZs: '' 
-        ]
+      AvailabilityZone:
+        Fn::Select: [Ref: ZonaSubRede, Fn::GetAZs: ""]
       VpcId:
         Ref: VPC
-      CidrBlock: 
-        Ref:
-          FaixaIPdaSubRede
+      CidrBlock:
+        Ref: FaixaIPdaSubRede
       Tags:
         - Key: Name
           Value: Kubernetes
@@ -63,10 +59,10 @@ Resources:
   LigacaoRoteadorVPC:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: 
+      VpcId:
         Ref: VPC
-      InternetGatewayId: 
-        Ref: RoteadorInternet 
+      InternetGatewayId:
+        Ref: RoteadorInternet
   IPElastico:
     Type: AWS::EC2::EIP
     DependsOn: LigacaoRoteadorVPC
@@ -76,57 +72,54 @@ Resources:
     Type: AWS::EC2::NatGateway
     Properties:
       AllocationId:
-        Fn::GetAtt: [
-          IPElastico,
-          AllocationId
-        ]
+        Fn::GetAtt: [IPElastico, AllocationId]
       SubnetId:
         Ref: SubRede
       Tags:
-        - Key: Name 
-          Value: Kubernetes 
+        - Key: Name
+          Value: Kubernetes
   TabelaRoteamentoRede:
-    Type: AWS::EC2::RouteTable 
+    Type: AWS::EC2::RouteTable
     Properties:
       VpcId:
         Ref: VPC
       Tags:
-        - Key: Name 
+        - Key: Name
           Value: Kubernetes
   RotaRedePadrao:
-    Type: AWS::EC2::Route 
-    Properties: 
-      GatewayId: 
-        Ref: RoteadorInternet 
+    Type: AWS::EC2::Route
+    Properties:
+      GatewayId:
+        Ref: RoteadorInternet
       DestinationCidrBlock: 0.0.0.0/0
-      RouteTableId: 
+      RouteTableId:
         Ref: TabelaRoteamentoRede
 
   RotaRedePod0:
-    Type: AWS::EC2::Route 
+    Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 192.168.0.0/24
       InstanceId:
         Ref: worker0
-      RouteTableId: 
+      RouteTableId:
         Ref: TabelaRoteamentoRede
 
   RotaRedePod1:
-    Type: AWS::EC2::Route 
+    Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 192.168.1.0/24
       InstanceId:
         Ref: worker1
-      RouteTableId: 
+      RouteTableId:
         Ref: TabelaRoteamentoRede
 
   RotaRedePod2:
-    Type: AWS::EC2::Route 
+    Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 192.168.2.0/24
       InstanceId:
         Ref: worker2
-      RouteTableId: 
+      RouteTableId:
         Ref: TabelaRoteamentoRede
 
   AssociacaoTabelaSubRede:
@@ -140,25 +133,25 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: Kubernetes
-      GroupDescription:  Grupo de Seguranca do Cluster Kubernetes
+      GroupDescription: Grupo de Seguranca do Cluster Kubernetes
       VpcId:
         Ref: VPC
       SecurityGroupIngress:
         - CidrIp: 0.0.0.0/0
           FromPort: 22
-          IpProtocol: tcp 
+          IpProtocol: tcp
           ToPort: 22
         - CidrIp: 0.0.0.0/0
           FromPort: 6443
-          IpProtocol: tcp 
+          IpProtocol: tcp
           ToPort: 6443
         - CidrIp: 0.0.0.0/0
           FromPort: 443
-          IpProtocol: tcp 
+          IpProtocol: tcp
           ToPort: 443
         - CidrIp: 0.0.0.0/0
           FromPort: -1
-          IpProtocol: icmp 
+          IpProtocol: icmp
           ToPort: -1
         - CidrIp: 192.168.0.0/16
           IpProtocol: -1
@@ -178,61 +171,63 @@ Resources:
         Ref: GrupoDeSeguranca
 
   BalanceadorDeCarga:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer 
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: "Kubernetes"
       Type: "network"
       Subnets:
-        - Ref: SubRede 
+        - Ref: SubRede
       Scheme: "internet-facing"
-  
+
   GrupoAlvo:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup 
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: "Kubernetes"
       Protocol: "TCP"
       Port: 6443
       VpcId:
         Ref: VPC
-      TargetType: "ip" 
+      TargetType: "ip"
       Targets:
         - Id: 10.240.0.10
         - Id: 10.240.0.11
         - Id: 10.240.0.12
 
   Ouvinte:
-    Type: AWS::ElasticLoadBalancingV2::Listener 
+    Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn:
         Ref: BalanceadorDeCarga
-      Protocol: "TCP" 
+      Protocol: "TCP"
       Port: 443
       DefaultActions:
         - Type: "forward"
           TargetGroupArn:
-            Ref: GrupoAlvo 
+            Ref: GrupoAlvo
 
   controller0:
     Type: AWS::EC2::Instance
     Properties:
       KeyName:
         Ref: KeyName
-      ImageId: 
+      ImageId:
         Fn::FindInMap:
           - RegionMap
-          - Ref: 'AWS::Region'
+          - Ref: "AWS::Region"
           - Ubuntu2004
       InstanceType:
-        Ref: InstanceType  
+        Ref: InstanceType
       Tags:
         - Key: Name
           Value: controller-0
+        - Key: Role
+          Value: controller
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.10
-          AssociatePublicIpAddress: true 
-          DeleteOnTermination: true 
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
           SubnetId:
-            Ref: SubRede 
+            Ref: SubRede
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
@@ -242,11 +237,11 @@ Resources:
           Ebs:
             VolumeType: gp2
             VolumeSize: 40
-      UserData: 
-        Fn::Base64: 
+      UserData:
+        Fn::Base64:
           Fn::Sub: |
             #!/bin/bash -ex
-            
+
             # Configura o hostname
             hostname controller-0
             echo "controller-0" > /etc/hostname
@@ -266,22 +261,24 @@ Resources:
     Properties:
       KeyName:
         Ref: KeyName
-      ImageId: 
+      ImageId:
         Fn::FindInMap:
           - RegionMap
-          - Ref: 'AWS::Region'
+          - Ref: "AWS::Region"
           - Ubuntu2004
       InstanceType:
-        Ref: InstanceType  
+        Ref: InstanceType
       Tags:
         - Key: Name
           Value: controller-1
+        - Key: Role
+          Value: controller
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.11
-          AssociatePublicIpAddress: true 
-          DeleteOnTermination: true 
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
           SubnetId:
-            Ref: SubRede 
+            Ref: SubRede
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
@@ -291,11 +288,11 @@ Resources:
           Ebs:
             VolumeType: gp2
             VolumeSize: 40
-      UserData: 
-        Fn::Base64: 
+      UserData:
+        Fn::Base64:
           Fn::Sub: |
             #!/bin/bash -ex
-            
+
             # Configura o hostname
             hostname controller-1
             echo "controller-1" > /etc/hostname
@@ -315,22 +312,24 @@ Resources:
     Properties:
       KeyName:
         Ref: KeyName
-      ImageId: 
+      ImageId:
         Fn::FindInMap:
           - RegionMap
-          - Ref: 'AWS::Region'
+          - Ref: "AWS::Region"
           - Ubuntu2004
       InstanceType:
-        Ref: InstanceType  
+        Ref: InstanceType
       Tags:
         - Key: Name
           Value: controller-2
+        - Key: Role
+          Value: controller
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.12
-          AssociatePublicIpAddress: true 
-          DeleteOnTermination: true 
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
           SubnetId:
-            Ref: SubRede 
+            Ref: SubRede
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
@@ -339,12 +338,12 @@ Resources:
         - DeviceName: /dev/sda1
           Ebs:
             VolumeType: gp2
-            VolumeSize: 40      
-      UserData: 
-        Fn::Base64: 
+            VolumeSize: 40
+      UserData:
+        Fn::Base64:
           Fn::Sub: |
             #!/bin/bash -ex
-            
+
             # Configura o hostname
             hostname controller-2
             echo "controller-2" > /etc/hostname
@@ -364,31 +363,33 @@ Resources:
     Properties:
       KeyName:
         Ref: KeyName
-      ImageId: 
+      ImageId:
         Fn::FindInMap:
           - RegionMap
-          - Ref: 'AWS::Region'
+          - Ref: "AWS::Region"
           - Ubuntu2004
       InstanceType:
-        Ref: InstanceType  
+        Ref: InstanceType
       Tags:
         - Key: Name
           Value: worker-0
+        - Key: Role
+          Value: worker
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.20
-          AssociatePublicIpAddress: true 
-          DeleteOnTermination: true 
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
           SubnetId:
-            Ref: SubRede 
+            Ref: SubRede
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
       SourceDestCheck: false
-      UserData: 
-        Fn::Base64: 
+      UserData:
+        Fn::Base64:
           Fn::Sub: |
             #!/bin/bash -ex
-            
+
             # Configura o hostname
             hostname worker-0
             echo "worker-0" > /etc/hostname
@@ -408,31 +409,33 @@ Resources:
     Properties:
       KeyName:
         Ref: KeyName
-      ImageId: 
+      ImageId:
         Fn::FindInMap:
           - RegionMap
-          - Ref: 'AWS::Region'
+          - Ref: "AWS::Region"
           - Ubuntu2004
       InstanceType:
-        Ref: InstanceType  
+        Ref: InstanceType
       Tags:
         - Key: Name
           Value: worker-1
+        - Key: Role
+          Value: worker
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.21
-          AssociatePublicIpAddress: true 
-          DeleteOnTermination: true 
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
           SubnetId:
-            Ref: SubRede 
+            Ref: SubRede
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
       SourceDestCheck: false
-      UserData: 
-        Fn::Base64: 
+      UserData:
+        Fn::Base64:
           Fn::Sub: |
             #!/bin/bash -ex
-            
+
             # Configura o hostname
             hostname worker-1
             echo "worker-1" > /etc/hostname
@@ -452,31 +455,33 @@ Resources:
     Properties:
       KeyName:
         Ref: KeyName
-      ImageId: 
+      ImageId:
         Fn::FindInMap:
           - RegionMap
-          - Ref: 'AWS::Region'
+          - Ref: "AWS::Region"
           - Ubuntu2004
       InstanceType:
-        Ref: InstanceType  
+        Ref: InstanceType
       Tags:
         - Key: Name
           Value: worker-2
+        - Key: Role
+          Value: worker
       NetworkInterfaces:
         - PrivateIpAddress: 10.240.0.22
-          AssociatePublicIpAddress: true 
-          DeleteOnTermination: true 
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
           SubnetId:
-            Ref: SubRede 
+            Ref: SubRede
           DeviceIndex: 0
           GroupSet:
             - Ref: GrupoDeSeguranca
       SourceDestCheck: false
-      UserData: 
-        Fn::Base64: 
+      UserData:
+        Fn::Base64:
           Fn::Sub: |
             #!/bin/bash -ex
-            
+
             # Configura o hostname
             hostname worker-2
             echo "worker-2" > /etc/hostname
@@ -491,86 +496,43 @@ Resources:
             10.240.0.22 worker-2 
             EOF
 
-
 Outputs:
   EnderecoPublicoKubernetes:
     Value:
-      Fn::GetAtt: [
-        BalanceadorDeCarga,
-        DNSName
-      ]
-
+      Fn::GetAtt: [BalanceadorDeCarga, DNSName]
   EnderecoPublicoController0:
     Value:
-      Fn::GetAtt: [
-        controller0,
-        PublicIp
-      ]
+      Fn::GetAtt: [controller0, PublicIp]
   EnderecoPrivadoController0:
     Value:
-      Fn::GetAtt: [
-        controller0,
-        PrivateIp
-      ]
+      Fn::GetAtt: [controller0, PrivateIp]
   EnderecoPublicoController1:
     Value:
-      Fn::GetAtt: [
-        controller1,
-        PublicIp
-      ]
+      Fn::GetAtt: [controller1, PublicIp]
   EnderecoPrivadoController1:
     Value:
-      Fn::GetAtt: [
-        controller1,
-        PrivateIp
-      ]
+      Fn::GetAtt: [controller1, PrivateIp]
   EnderecoPublicoController2:
     Value:
-      Fn::GetAtt: [
-        controller2,
-        PublicIp
-      ]
+      Fn::GetAtt: [controller2, PublicIp]
   EnderecoPrivadoController2:
     Value:
-      Fn::GetAtt: [
-        controller2,
-        PrivateIp
-      ]
+      Fn::GetAtt: [controller2, PrivateIp]
   EnderecoPublicoWorker0:
     Value:
-      Fn::GetAtt: [
-        worker0,
-        PublicIp
-      ]
+      Fn::GetAtt: [worker0, PublicIp]
   EnderecoPrivadoWorker0:
     Value:
-      Fn::GetAtt: [
-        worker0,
-        PrivateIp
-      ]
+      Fn::GetAtt: [worker0, PrivateIp]
   EnderecoPublicoWorker1:
     Value:
-      Fn::GetAtt: [
-        worker1,
-        PublicIp
-      ]
+      Fn::GetAtt: [worker1, PublicIp]
   EnderecoPrivadoWorker1:
     Value:
-      Fn::GetAtt: [
-        worker1,
-        PrivateIp
-      ]
+      Fn::GetAtt: [worker1, PrivateIp]
   EnderecoPublicoWorker2:
     Value:
-      Fn::GetAtt: [
-        worker2,
-        PublicIp
-      ]
+      Fn::GetAtt: [worker2, PublicIp]
   EnderecoPrivadoWorker2:
     Value:
-      Fn::GetAtt: [
-        worker2,
-        PrivateIp
-      ]
-        
-           
+      Fn::GetAtt: [worker2, PrivateIp]

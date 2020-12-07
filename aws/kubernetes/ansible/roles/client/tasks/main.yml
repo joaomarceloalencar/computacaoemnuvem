@@ -1,0 +1,318 @@
+---
+
+# The kube_dir will hold the local files necessary for the client to connecto to the cluster
+- name: Create Kubernetes Directory
+  file: path={{ kube_dir }} state=directory
+- name: Create Binaries Directory
+  file: path={{ kube_dir }}/bin state=directory
+- name: Create Certificates Directory
+  file: path={{ kube_dir }}/certs state=directory
+- name: Create Config Directory
+  file: path={{ kube_dir }}/config state=directory  
+
+# Downloading the tools for certificate creation and the kubectl client  
+- name: Download cfssl binary
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-the-hard-way/cfssl/1.4.1/linux/cfssl
+    dest: "{{ kube_dir }}/bin/cfssl"
+    force_basic_auth: yes
+- name: Enable execution for cfssl
+  file:
+    path: "{{ kube_dir }}/bin/cfssl"
+    mode: '0744'
+- name: Download cfssljson binary
+  get_url:
+    url:  https://storage.googleapis.com/kubernetes-the-hard-way/cfssl/1.4.1/linux/cfssljson
+    dest: "{{ kube_dir }}/bin/cfssljson"
+    force_basic_auth: yes
+- name: Enable execution for cfssljson
+  file:
+    path: "{{ kube_dir }}/bin/cfssljson"
+    mode: '0744'
+- name: Download kubectl binary
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-release/release/v1.18.6/bin/linux/amd64/kubectl
+    dest: "{{ kube_dir }}/bin/kubectl"
+    force_basic_auth: yes
+- name: Enable execution for kubectl
+  file:
+    path: "{{ kube_dir }}/bin/kubectl"
+    mode: '0744'
+
+# Create the resources on the cloud through Cloudformation and register the into the inventory
+- set_fact:
+    stack_name: "{{ stack_name }}"
+- name: Create cfn stack
+  cloudformation:
+    stack_name: "{{ stack_name }}"
+    region: "{{ region }}"
+    disable_rollback: true
+    state: present
+    template: "{{ role_path }}/files/cluster.yaml"
+    template_parameters:
+      KeyName: "{{ keypair }}"
+      InstanceType: "{{ instance_type }}"
+    tags:
+      stack: "{{ stack_name }}"
+- name: Get Stack Output
+  amazon.aws.cloudformation_info:
+    stack_name: "{{ stack_name}}"
+  register: output
+- name: Get ec2 controllers instances info
+  ec2_instance_info:
+    region: "{{ region }}"
+    filters:
+      "tag:Role": "controller"
+      instance-state-name: [ "running" ]
+  register: controllers_list
+- name: Add instances to controllers group inventory
+  add_host:
+    name: "{{ item.public_dns_name }}"
+    ansible_user: ec2-user
+    host_key_checking: false
+    groups: "controllers"
+  when: controllers_list.instances|length > 0
+  loop: "{{ controllers_list['instances'] | flatten(levels=1) }}"
+- name: Get ec2 workers instances info
+  ec2_instance_info:
+    region: "{{ region }}"
+    filters:
+      "tag:Role": "worker"
+      instance-state-name: [ "running" ]
+  register: workers_list
+- name: Add instances to workers group inventory
+  add_host:
+    name: "{{ item.public_dns_name }}"
+    ansible_user: ec2-user
+    host_key_checking: false
+    groups: "workers"
+  when: workers_list.instances|length > 0
+  loop: "{{ workers_list['instances'] | flatten(levels=1) }}"
+
+  # Generating Certificates
+- name: Generate Certificate Authority
+  shell: |
+    export PATH=bin/:"$PATH"
+    cfssl gencert -initca {{ role_path }}/files/ca-csr.json | cfssljson -bare ca
+    cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config={{ role_path }}/files/ca-config.json \
+    -profile=kubernetes \
+    {{ role_path }}/files/admin-csr.json | cfssljson -bare admin
+  args:
+    chdir: "{{ kube_dir }}"
+
+- name: Generate Kubelet Certificates
+  shell: |
+    export PATH=bin/:"$PATH"
+    cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config={{ role_path }}/files/ca-config.json \
+    -hostname={{ item.tags['Name'] }},{{ item.public_ip_address }},{{ item.private_ip_address }} \
+    -profile=kubernetes \
+    {{ role_path }}/files/{{ item.tags['Name'] }}-csr.json | cfssljson -bare {{ item.tags['Name'] }}
+    mv worker* certs/
+  args:
+    chdir: "{{ kube_dir }}"
+  with_items: "{{ workers_list['instances'] }}"
+
+- name: Generate Controller, Proxy, Service and Scheduler Certificates
+  shell: |
+    export PATH=bin/:"$PATH"
+    cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config={{ role_path }}/files/ca-config.json \
+    -profile=kubernetes \
+    {{ role_path }}/files/kube-controller-manager-csr.json | cfssljson -bare kube-controller-manager
+
+    cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config={{ role_path }}/files/ca-config.json \
+    -profile=kubernetes \
+    {{ role_path }}/files/kube-proxy-csr.json | cfssljson -bare kube-proxy
+
+    cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config={{ role_path }}/files/ca-config.json \
+    -profile=kubernetes \
+    {{ role_path }}/files/service-account-csr.json | cfssljson -bare service-account
+
+    cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config={{ role_path }}/files/ca-config.json \
+    -profile=kubernetes \
+    {{ role_path }}/files/kube-scheduler-csr.json | cfssljson -bare kube-scheduler
+    
+    mv service* kube* certs
+  args:
+    chdir: "{{ kube_dir }}"
+
+- name: Generate API Server Certificates
+  shell: |
+    export PATH=bin/:"$PATH"
+    KUBERNETES_PUBLIC_ADDRESS={{ output.cloudformation[stack_name].stack_outputs['EnderecoPublicoKubernetes'] }}
+    KUBERNETES_HOSTNAMES=kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.svc.cluster.local
+    cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config={{ role_path }}/files/ca-config.json \
+    -hostname=10.32.0.1,10.240.0.10,10.240.0.11,10.240.0.12,${KUBERNETES_PUBLIC_ADDRESS},127.0.0.1,${KUBERNETES_HOSTNAMES} \
+    -profile=kubernetes \
+    {{ role_path }}/files/kubernetes-csr.json | cfssljson -bare kubernetes
+    mv kubernetes* certs/
+  args:
+    chdir: "{{ kube_dir }}"
+
+- name: Data Encrypt Key
+  shell: |
+    ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
+    cat > encryption-config.yaml <<EOF
+    kind: EncryptionConfig    
+    apiVersion: v1
+    resources:
+      - resources:
+          - secrets
+        providers:
+          - aescbc:
+              keys:
+                - name: key1
+                  secret: ${ENCRYPTION_KEY}
+          - identity: {}
+    EOF
+    mv encryption-config.yaml certs/
+  args:
+    chdir: "{{ kube_dir }}"
+
+- name: Move CA certificates to the right directory
+  shell: |
+    mv ca-key.pem ca.csr ca.pem admin-key.pem admin.csr admin.pem certs/
+  args:
+    chdir: "{{ kube_dir }}"
+
+# Generate Configuration files
+- name: Generate Kubelet Configuration Files
+  shell: |
+    export PATH=bin/:"$PATH"
+    KUBERNETES_PUBLIC_ADDRESS={{ output.cloudformation[stack_name].stack_outputs['EnderecoPublicoKubernetes'] }}
+    kubectl config set-cluster kubernetes-the-hard-way \
+    --certificate-authority=certs/ca.pem \
+    --embed-certs=true \
+    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:443 \
+    --kubeconfig=config/{{ item.tags['Name'] }}.kubeconfig
+
+    kubectl config set-credentials system:node:{{ item.tags['Name'] }} \
+    --client-certificate=certs/{{ item.tags['Name'] }}.pem \
+    --client-key=certs/{{ item.tags['Name'] }}-key.pem \
+    --embed-certs=true \
+    --kubeconfig=config/{{ item.tags['Name'] }}.kubeconfig
+
+    kubectl config set-context default \
+    --cluster=kubernetes-the-hard-way \
+    --user=system:node:{{ item.tags['Name'] }} \
+    --kubeconfig=config/{{ item.tags['Name'] }}.kubeconfig
+    kubectl config use-context default --kubeconfig=config/{{ item.tags['Name'] }}.kubeconfig
+  args:
+    chdir: "{{ kube_dir }}"
+  with_items: "{{ workers_list['instances'] }}"
+
+- name: Generate Kube Proxy Configuration File
+  shell: |
+    export PATH=bin/:"$PATH"
+    KUBERNETES_PUBLIC_ADDRESS={{ output.cloudformation[stack_name].stack_outputs['EnderecoPublicoKubernetes'] }}
+    kubectl config set-cluster kubernetes-the-hard-way \
+    --certificate-authority=certs/ca.pem \
+    --embed-certs=true \
+    --server=https://${KUBERNETES_PUBLIC_ADDRESS}:443 \
+    --kubeconfig=config/kube-proxy.kubeconfig
+
+    kubectl config set-credentials system:kube-proxy \
+    --client-certificate=certs/kube-proxy.pem \
+    --client-key=certs/kube-proxy-key.pem \
+    --embed-certs=true \
+    --kubeconfig=config/kube-proxy.kubeconfig
+
+    kubectl config set-context default \
+    --cluster=kubernetes-the-hard-way \
+    --user=system:kube-proxy \
+    --kubeconfig=config/kube-proxy.kubeconfig
+    kubectl config use-context default --kubeconfig=config/kube-proxy.kubeconfig
+  args:
+    chdir: "{{ kube_dir }}"
+
+- name: Generate Kube Controller Configuration File
+  shell: |
+    export PATH=bin/:"$PATH"
+    KUBERNETES_PUBLIC_ADDRESS={{ output.cloudformation[stack_name].stack_outputs['EnderecoPublicoKubernetes'] }}
+    kubectl config set-cluster kubernetes-the-hard-way \
+    --certificate-authority=certs/ca.pem \
+    --embed-certs=true \
+    --server=https://127.0.0.1:6443 \
+    --kubeconfig=config/kube-controller-manager.kubeconfig
+
+    kubectl config set-credentials system:kube-controller-manager \
+    --client-certificate=certs/kube-controller-manager.pem \
+    --client-key=certs/kube-controller-manager-key.pem \
+    --embed-certs=true \
+    --kubeconfig=config/kube-controller-manager.kubeconfig
+
+    kubectl config set-context default \
+    --cluster=kubernetes-the-hard-way \
+    --user=system:kube-controller-manager \
+    --kubeconfig=config/kube-controller-manager.kubeconfig 
+    kubectl config use-context default --kubeconfig=config/kube-controller-manager.kubeconfig
+  args:
+    chdir: "{{ kube_dir }}"
+  
+- name: Generate Kube Scheduler Configuration File
+  shell: |
+    export PATH=bin/:"$PATH"
+    KUBERNETES_PUBLIC_ADDRESS={{ output.cloudformation[stack_name].stack_outputs['EnderecoPublicoKubernetes'] }}
+    kubectl config set-cluster kubernetes-the-hard-way \
+    --certificate-authority=certs/ca.pem \
+    --embed-certs=true \
+    --server=https://127.0.0.1:6443 \
+    --kubeconfig=config/kube-scheduler.kubeconfig
+
+    kubectl config set-credentials system:kube-scheduler \
+    --client-certificate=certs/kube-scheduler.pem \
+    --client-key=certs/kube-scheduler-key.pem \
+    --embed-certs=true \
+    --kubeconfig=config/kube-scheduler.kubeconfig
+
+    kubectl config set-context default \
+    --cluster=kubernetes-the-hard-way \
+    --user=system:kube-scheduler \
+    --kubeconfig=config/kube-scheduler.kubeconfig
+    kubectl config use-context default --kubeconfig=config/kube-scheduler.kubeconfig
+  args:
+    chdir: "{{ kube_dir }}"
+  
+- name: Generate Kube Admin Configuration File
+  shell: |
+    export PATH=bin/:"$PATH"
+    KUBERNETES_PUBLIC_ADDRESS={{ output.cloudformation[stack_name].stack_outputs['EnderecoPublicoKubernetes'] }}
+    kubectl config set-cluster kubernetes-the-hard-way \
+    --certificate-authority=certs/ca.pem \
+    --embed-certs=true \
+    --server=https://127.0.0.1:6443 \
+    --kubeconfig=config/admin.kubeconfig
+
+    kubectl config set-credentials admin \
+    --client-certificate=certs/admin.pem \
+    --client-key=certs/admin-key.pem \
+    --embed-certs=true \
+    --kubeconfig=config/admin.kubeconfig
+
+    kubectl config set-context default \
+    --cluster=kubernetes-the-hard-way \
+    --user=admin \
+    --kubeconfig=config/admin.kubeconfig
+    kubectl config use-context default --kubeconfig=config/admin.kubeconfig
+  args:
+    chdir: "{{ kube_dir }}"

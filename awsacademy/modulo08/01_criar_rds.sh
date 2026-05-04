@@ -41,9 +41,9 @@ aws rds create-db-instance \
   --db-instance-identifier "demo-rds-postgres" \
   --db-instance-class "db.t3.micro" \
   --engine "postgres" \
-  --engine-version "16.3" \
+  --engine-version "16.6" \
   --master-username "admindb" \
-  --master-user-password "Demo@2024Seguro" \
+  --master-user-password "Demo2024Seguro" \
   --allocated-storage 20 \
   --storage-type gp2 \
   --vpc-security-group-ids "$SG_ID" \

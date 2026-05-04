@@ -5,7 +5,7 @@ from psycopg2.extras import RealDictCursor
 RDS_HOST = os.environ.get("RDS_ENDPOINT", "SEU_ENDPOINT_AQUI")
 DB_NAME  = "postgres"
 DB_USER  = "admindb"
-DB_PASS  = "Demo@2024Seguro"
+DB_PASS  = "Demo2024Seguro"
 
 conn = psycopg2.connect(host=RDS_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASS)
 cur  = conn.cursor(cursor_factory=RealDictCursor)

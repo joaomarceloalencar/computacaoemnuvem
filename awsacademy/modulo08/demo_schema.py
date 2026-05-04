@@ -17,7 +17,7 @@ RDS_HOST = os.environ.get("RDS_ENDPOINT", "SEU_ENDPOINT_AQUI")
 
 conn = psycopg2.connect(
     host=RDS_HOST, dbname="postgres",
-    user="admindb", password="Demo@2024Seguro"
+    user="admindb", password="Demo2024Seguro"
 )
 cur = conn.cursor()
 

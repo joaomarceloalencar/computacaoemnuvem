@@ -4,7 +4,7 @@ import psycopg2
 RDS_HOST = os.environ.get("RDS_ENDPOINT", "SEU_ENDPOINT_AQUI")
 DB_NAME  = "postgres"
 DB_USER  = "admindb"
-DB_PASS  = "Demo@2024Seguro"
+DB_PASS  = "Demo2024Seguro"
 DB_PORT  = 5432
 
 conn = psycopg2.connect(

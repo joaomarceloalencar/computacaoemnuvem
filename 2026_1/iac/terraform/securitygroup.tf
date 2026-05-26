@@ -24,6 +24,15 @@ resource "aws_vpc_security_group_ingress_rule" "permitir_http_ipv4" {
   to_port           = 80
 }
 
+# PostgreSQL — necessário para a EC2 conectar ao RDS
+resource "aws_vpc_security_group_ingress_rule" "permitir_postgres_ipv4" {
+  security_group_id = aws_security_group.devops.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 5432
+  ip_protocol       = "tcp"
+  to_port           = 5432
+}
+
 # Saída irrestrita — necessária para apt instalar pacotes
 resource "aws_vpc_security_group_egress_rule" "permitir_saida_ipv4" {
   security_group_id = aws_security_group.devops.id

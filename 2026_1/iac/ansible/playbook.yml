@@ -1,9 +1,9 @@
 ---
-# Playbook principal — associa cada grupo de instâncias à sua role.
+# Playbook principal — associa a instância EC2 à role web.
+# O banco de dados é um RDS gerenciado pelo Terraform — não há role de banco.
 #
-# Os grupos tag_Name_InstanciaNginx e tag_Name_InstanciaPostgres são gerados
-# automaticamente pelo inventário dinâmico a partir das tags das instâncias
-# criadas pelo Terraform.
+# O grupo tag_Name_InstanciaNginx é gerado automaticamente pelo inventário
+# dinâmico a partir da tag da instância criada pelo Terraform.
 #
 # Execução:
 #   ansible-playbook -i aws_ec2.yaml playbook.yml
@@ -11,7 +11,3 @@
 - hosts: tag_Name_InstanciaNginx
   roles:
     - web
-
-- hosts: tag_Name_InstanciaPostgres
-  roles:
-    - bancodedados

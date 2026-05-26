@@ -17,3 +17,8 @@ variable "nome_chave" {
   description = "Nome do par de chaves SSH (deve existir na sua conta AWS)"
   default     = "vockey"
 }
+
+variable "db_password" {
+  description = "Senha do banco de dados RDS PostgreSQL"
+  sensitive   = true
+}

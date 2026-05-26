@@ -1,14 +1,14 @@
 ---
-- name: Instalar o MySQL Server
+- name: Instalar o PostgreSQL
   become: true
   apt:
-    name: mysql-server
+    name: postgresql
     state: latest
     update_cache: true
 
-- name: Iniciar o MySQL Server
+- name: Iniciar o PostgreSQL
   become: true
   service:
-    name: mysql
+    name: postgresql
     state: started
     enabled: true

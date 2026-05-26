@@ -12,17 +12,17 @@ resource "aws_instance" "nginx" {
   }
 }
 
-# Instância para o banco de dados (MySQL)
-# A tag Name=InstanciaMySql é usada pelo Ansible
-# para identificar este host como membro do grupo tag_Name_InstanciaMySql.
-resource "aws_instance" "mysql" {
+# Instância para o banco de dados (PostgreSQL)
+# A tag Name=InstanciaPostgres é usada pelo Ansible
+# para identificar este host como membro do grupo tag_Name_InstanciaPostgres.
+resource "aws_instance" "postgres" {
   ami             = var.ami
   instance_type   = var.tipo_instancia
   key_name        = var.nome_chave
   security_groups = [aws_security_group.devops.name]
 
   tags = {
-    Name = "InstanciaMySql"
+    Name = "InstanciaPostgres"
   }
 }
 
@@ -31,7 +31,7 @@ output "ip_nginx" {
   value       = aws_instance.nginx.public_ip
 }
 
-output "ip_mysql" {
-  description = "IP público da instância MySQL"
-  value       = aws_instance.mysql.public_ip
+output "ip_postgres" {
+  description = "IP público da instância PostgreSQL"
+  value       = aws_instance.postgres.public_ip
 }

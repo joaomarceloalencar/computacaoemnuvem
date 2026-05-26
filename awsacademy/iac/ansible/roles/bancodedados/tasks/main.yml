@@ -1,0 +1,14 @@
+---
+- name: Instalar o MySQL Server
+  become: true
+  apt:
+    name: mysql-server
+    state: latest
+    update_cache: true
+
+- name: Iniciar o MySQL Server
+  become: true
+  service:
+    name: mysql
+    state: started
+    enabled: true

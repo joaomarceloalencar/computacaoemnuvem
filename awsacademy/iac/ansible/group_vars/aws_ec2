@@ -1,0 +1,5 @@
+# Variáveis SSH aplicadas a todos os hosts do inventário dinâmico aws_ec2.
+# O arquivo labuser.pem deve estar disponível localmente.
+ansible_user: ubuntu
+ansible_ssh_private_key_file: ~/labuser.pem
+ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'

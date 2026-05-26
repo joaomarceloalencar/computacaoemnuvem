@@ -1,0 +1,14 @@
+---
+# Inventário dinâmico AWS EC2 (Módulo 03 — Ansible)
+# O nome do arquivo deve ser aws_ec2.yaml para o plugin funcionar.
+#
+# Verificar conectividade e listar recursos:
+#   ansible-inventory -i aws_ec2.yaml --graph
+
+plugin: amazon.aws.aws_ec2
+aws_profile: default
+regions:
+  - us-east-1
+keyed_groups:
+  - key: tags
+    prefix: tag

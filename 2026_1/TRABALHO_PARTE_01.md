@@ -1,4 +1,4 @@
-# Trabalho Prático — Infraestrutura como Código na AWS
+# Trabalho Prático — Infraestrutura como Código na AWS - 2,0 pontos na Terceira Nota.
 
 ## Descrição
 

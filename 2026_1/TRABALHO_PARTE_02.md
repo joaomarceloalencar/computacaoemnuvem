@@ -29,15 +29,7 @@ Toda a atividade é feita em **linha de comando Linux**. Não é permitido o uso
 
 ### 1. Acesso via SSH (pelo menos um dos usuários)
 
-Demonstre que o acesso ao repositório é feito por chave SSH, não por senha. Mostre o clone ou o push usando a URL no formato `git@github.com:...`:
-
-```bash
-# Verificar configuração da chave
-$ cat ~/.ssh/config
-
-# Clonar usando SSH
-$ git clone git@github.com:<usuario>/devops.git
-```
+Demonstre que o acesso ao repositório é feito por chave SSH, não por senha. É suficiente mostrar que o repositório foi clonado com a URL no formato `git@github.com:...` e que um `push` é realizado sem solicitação de senha, evidenciando a autenticação por chave.
 
 ### 2. `usuario1` faz pull e altera o arquivo
 

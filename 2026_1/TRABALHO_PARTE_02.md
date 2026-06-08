@@ -10,7 +10,7 @@ Produzir um **vídeo de até 5 minutos** demonstrando o uso do Git em linha de c
 
 ## Cenário
 
-Dois usuários (`usuario1` e `usuario2`) compartilham um repositório no GitHub. Ambos fazem `pull`, alteram o mesmo trecho de um mesmo arquivo e tentam submeter via `push`. O `usuario2` recebe uma mensagem de conflito e precisa resolvê-lo antes de submeter a versão final.
+Dois usuários (`usuario1` e `usuario2`) compartilham um repositório no GitHub. Ambos fazem pull, alteram o mesmo trecho de um mesmo arquivo e tentam submeter via push. O `usuario2` recebe uma mensagem de conflito e precisa resolvê-lo antes de submeter a versão final.
 
 Toda a atividade é feita em **linha de comando Linux**. Não é permitido o uso de IDEs como Visual Studio Code. O editor de texto deve ser **nano** ou **vim**.
 
@@ -27,67 +27,25 @@ Toda a atividade é feita em **linha de comando Linux**. Não é permitido o uso
 
 ## O que deve aparecer no vídeo
 
-### 1. Acesso via SSH (pelo menos um dos usuários)
+### 1. Acesso via SSH
 
-Demonstre que o acesso ao repositório é feito por chave SSH, não por senha. É suficiente mostrar que o repositório foi clonado com a URL no formato `git@github.com:...` e que um `push` é realizado sem solicitação de senha, evidenciando a autenticação por chave.
+Demonstre que o acesso ao repositório é feito por chave SSH, não por senha. É suficiente que um push seja realizado sem solicitação de senha, evidenciando a autenticação por chave.
 
-### 2. `usuario1` faz pull e altera o arquivo
+### 2. `usuario1` atualiza o repositório
 
-```bash
-$ git pull
-$ nano README.md        # adiciona uma linha no final do arquivo
-$ git add README.md
-$ git commit -m "usuario1: atualiza README"
-$ git push
-```
+`usuario1` faz pull, edita um arquivo, registra as alterações com commit e envia para o repositório remoto com push.
 
-### 3. `usuario2` faz pull (antes do push do usuario1) e altera o mesmo arquivo
+### 3. `usuario2` tenta enviar alterações conflitantes
 
-Neste momento, `usuario2` já havia feito o `pull` antes do `push` do `usuario1`, portanto seu repositório local está desatualizado:
-
-```bash
-$ git pull              # feito antes do push do usuario1
-$ nano README.md        # altera a mesma linha que usuario1 alterou
-$ git add README.md
-$ git commit -m "usuario2: atualiza README"
-$ git push              # CONFLITO: repositório remoto avançou
-```
-
-A mensagem de erro do Git deve aparecer no vídeo, indicando que o repositório remoto contém trabalho que o local não possui.
+`usuario2` já havia feito pull antes do push do `usuario1`, portanto seu repositório local está desatualizado. Ele edita a mesma parte do mesmo arquivo, registra com commit e tenta fazer push — a mensagem de conflito do Git deve aparecer no vídeo.
 
 ### 4. `usuario2` resolve o conflito
 
-```bash
-$ git fetch origin
-$ git merge origin/main     # ou git pull
-```
-
-O Git abre o arquivo com os marcadores de conflito:
-
-```
-<<<<<<< HEAD
-Linha alterada pelo usuario2
-=======
-Linha alterada pelo usuario1
->>>>>>> origin/main
-```
-
-`usuario2` edita o arquivo, remove os marcadores e mantém a versão final acordada:
-
-```bash
-$ nano README.md            # remove marcadores, deixa a versão final
-$ git add README.md
-$ git commit -m "usuario2: resolve conflito com usuario1"
-$ git push
-```
+`usuario2` sincroniza com o repositório remoto, abre o arquivo com os marcadores de conflito inseridos pelo Git, edita manualmente para chegar à versão final, e registra a resolução com um novo commit e push.
 
 ### 5. Verificação final
 
-Mostre que o repositório remoto contém o histórico de commits dos dois usuários e a resolução do conflito:
-
-```bash
-$ git log --oneline --graph
-```
+Mostre o histórico de commits, evidenciando as contribuições dos dois usuários e o commit de resolução do conflito.
 
 ---
 
@@ -99,7 +57,7 @@ $ git log --oneline --graph
 | `usuario1` faz pull, altera, commit e push com sucesso | 20% |
 | `usuario2` tenta push e recebe mensagem de conflito | 25% |
 | `usuario2` resolve o conflito e faz push com sucesso | 25% |
-| Histórico de commits exibido com `git log` ao final | 10% |
+| Histórico de commits exibido ao final | 10% |
 
 ---
 

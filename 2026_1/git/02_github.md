@@ -37,12 +37,17 @@
 ## Criação de Repositório
 
 - Na página inicial, clique em *Create repository* no lado esquerdo da tela, ou clique no símbolo `+` no canto superior direito e selecione *New repository*.
+
+![Opções para criar repositório no GitHub](imagens/02_criar_repositorio_ui.png)
+
 - No formulário de criação:
   - Informe o nome do repositório (ex: `devops`).
   - Escolha se será **Public** ou **Private**.
   - Marque *Add a README file*.
   - Escolha uma licença (ex: Apache License 2.0).
   - Clique em *Create repository*.
+
+![Formulário de criação de repositório](imagens/02_criar_repositorio_form.png)
 - O repositório será criado e você verá a interface *web*, através da qual pode realizar a maioria das operações de inserção de código, criação de *branchs*, etc.
 - Para integrar em *pipelines* CI/CD, é importante configurar o acesso através da linha de comando no Linux.
 - O GitHub usa o protocolo SSH para comunicação segura:

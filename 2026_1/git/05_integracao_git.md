@@ -29,17 +29,7 @@
 
 ### Diagrama GitFlow
 
-```
-1.0.0 tag
-  ↓
-[●]←[●]←──────────────[●]←[●]  ← main
-          ↖                ↑
-           [●]←[●]  hotfix │    novo-branch
-      1.0.1 tag   ↑        [●]
-              tentando     ↑
-              resolver  commit de novo
-              1.0.01    branch em paralelo
-```
+![Diagrama GitFlow com main, hotfix e novo-branch](imagens/05_gitflow_diagrama.png)
 
 ### *Branches* no GitFlow
 

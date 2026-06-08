@@ -39,10 +39,7 @@ $ git commit -m "Inserindo Olá mundo em Python."
 - O terceiro comando adiciona as alterações no *stage*, uma área intermediária temporária.
 - O quarto comando cria o *commit* no repositório local.
 
-```
-Diretório de    git add     Stage    git commit    Repositório
-  Trabalho    ──────────►           ────────────►    Local
-```
+![Fluxo: Diretório de Trabalho → Stage → Repositório Local](imagens/03_working_stage_local.png)
 
 - Todas alterações nos arquivos, mesmo esses já existam, devem ser adicionadas ao *stage* com `git add`.
 - As remoções de arquivos são feitas através de `git rm` e também são registradas no *stage* para fazerem parte do próximo *commit*.
@@ -65,6 +62,8 @@ A execução de `git status` apresenta a situação de cada arquivo:
 
 ### *diff* — comparando versões
 
+![Saída do git diff com anotações](imagens/03_git_diff.png)
+
 ```bash
 $ git diff
 diff --git a/src/olamundo.py b/src/olamundo.py
@@ -82,6 +81,8 @@ index 5d6f2b2..a3fbff7 100644
 - As linhas com `+` indicam o que foi adicionado; com `-`, o que foi removido.
 
 ### *status* — estado atual
+
+![Saída do git status com ações necessárias](imagens/03_git_status.png)
 
 ```bash
 $ git status
@@ -115,15 +116,7 @@ $ git commit -m "Hello World em inglês."
   - Você tenta submeter com *push* alterações em arquivos que outros desenvolvedores já alteraram.
   - Você recupera com *pull* alterações que foram feitas em arquivos que você também alterou localmente.
 
-```
-                    merge
-        ┌───────────────────────────────┐   Remoto
-        ↓                               │   (origin)
-Diretório de                       Repositório   fetch ↕ push
-  Trabalho     Stage               Local
-        └──────────────────────────────►┘
-             git add          git commit
-```
+![Diagrama completo: Working Dir, Stage, Repositório Local e Remoto](imagens/03_push_pull.png)
 
 `pull = fetch + merge`
 

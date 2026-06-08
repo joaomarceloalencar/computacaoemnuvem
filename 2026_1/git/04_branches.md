@@ -62,34 +62,27 @@ $ git merge calculator
 
 *Commits* possuem vários antecessores quando há *merge*:
 
-```
-branch main:  1 ← 2 ← 3 ← 6 ← 7 ← 8 ← 10
-                        ↖               ↗ (merge)
-outro branch:            4 ← 5 ← 9
-```
+![Grafo de commits com dois branches e merge](imagens/04_commit_graph.png)
 
 Para cada *branch*, o Git mantém uma variável que aponta para o último *commit* feito. A variável **HEAD** contém o nome da variável que armazena o identificador do último *commit* do *branch* corrente.
 
-```
-# HEAD aponta para MAIN
-1 ← 2 ← 3 ← [MAIN] ← [HEAD]
-         ↖
-          4 ← 5 ← 6 ← [CALCULATOR]
+![HEAD aponta para MAIN; branch CALCULATOR em paralelo](imagens/04_commit_graph_head.png)
 
-# Após git commit no main
+Após um `git commit` no *main*, o ponteiro MAIN (e HEAD) avançam:
+
+```bash
 $ git commit -m "Alterações no main."
-
-1 ← 2 ← 3 ← 7 ← [MAIN] ← [HEAD]
-         ↖
-          4 ← 5 ← 6 ← [CALCULATOR]
-
-# Após git checkout calculator
-$ git checkout calculator
-
-1 ← 2 ← 3 ← 7 ← [MAIN]
-         ↖
-          4 ← 5 ← 6 ← [CALCULATOR] ← [HEAD]
 ```
+
+![Após commit no main, HEAD e MAIN avançam](imagens/04_commit_graph_main.png)
+
+Ao fazer `git checkout calculator`, HEAD passa a apontar para o branch *calculator*:
+
+```bash
+$ git checkout calculator
+```
+
+![Após checkout calculator, HEAD aponta para CALCULATOR](imagens/04_commit_graph_calculator.png)
 
 ## *Branches* Remotos
 

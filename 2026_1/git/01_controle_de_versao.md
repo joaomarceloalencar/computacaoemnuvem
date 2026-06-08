@@ -25,13 +25,7 @@
   - Vários desenvolvedores podem fazer alterações em paralelo.
   - Se atuam em trechos diferentes de código, não há conflito. Caso contrário, o sistema alerta para as diferenças.
 
-```
-Repositório (servidor)
-        ↕         ↕         ↕
-  Estação    Estação    Estação
-  Cópia      Cópia      Cópia
-  Local      Local      Local
-```
+![Repositório centralizado e estações de trabalho](imagens/01_repositorio_servidor.png)
 
 ## Sistemas de Controle de Versão
 
@@ -69,15 +63,7 @@ Apesar de utilizarem nomes diferentes, todos protocolos suportam essas operaçõ
 
 Exemplo de fluxo com *branches* e *tags*:
 
-```
-                1.2.0.4 tag   1.2.0.5 tag
-                     ↓             ↓
-──────────────────[1.2.0 branch (correção de bugs)]────────────►
-trunk (novas funcionalidades) ──────────────────────────────────►
-                         [1.2.1 branch (correção de bugs)]──────►
-                                   ↑
-                              1.2.1.9 tag
-```
+![Fluxo com branches e tags](imagens/01_branches_tags.png)
 
 ## Centralizado versus Descentralizado
 

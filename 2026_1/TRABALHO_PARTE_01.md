@@ -1,4 +1,6 @@
-# Trabalho Prático — Infraestrutura como Código na AWS - 2,0 pontos na Terceira Nota.
+# Trabalho Prático — Infraestrutura como Código na AWS - 2,5 pontos na Terceira Nota.
+
+## Data de Entrega: 10/06/2026
 
 ## Descrição
 

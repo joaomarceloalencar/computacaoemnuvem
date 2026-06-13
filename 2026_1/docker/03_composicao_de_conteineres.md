@@ -58,10 +58,56 @@ Untagged: jmhal/devops@sha256:2485b12f6ded8e21a8a6abd69dc8a0715b8a59a2869c1ea79c
 
 ## Usando o *Docker Compose*
 
-- Vamos considerar uma aplicação *web* no *framework* Python que exibe o endereço IP interno do contêiner.
+- Vamos considerar uma aplicação *web* no *framework* Python Flask que exibe o endereço IP interno do contêiner.
 - O objetivo é apresentar como podemos coordenar vários contêineres em uma única aplicação.
 
 ![Arquitetura: nginx atuando como proxy reverso para app1 e app2](imagens/03_proxy_reverso_nginx.png)
+
+### A aplicação Flask
+
+A aplicação é organizada como um pacote Python chamado *showip*. A estrutura de arquivos é:
+
+```
+app/
+├── Dockerfile
+├── requirements.txt
+├── wsgi.py
+└── __init__.py
+```
+
+Arquivo `requirements.txt` com as dependências:
+
+```
+Flask
+gunicorn
+```
+
+Arquivo `__init__.py` — define o pacote *showip* e a rota que retorna o IP interno do contêiner:
+
+```python
+import socket
+from flask import Flask
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def show_ip():
+    hostname = socket.gethostname()
+    ip = socket.gethostbyname(hostname)
+    return f"{ip}\n"
+```
+
+Arquivo `wsgi.py` — ponto de entrada usado pelo *gunicorn*:
+
+```python
+from showip import app
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0")
+```
+
+O *gunicorn* é invocado como `wsgi:app`, ou seja, importa a variável `app` do módulo `wsgi`, que por sua vez importa a instância Flask criada em `showip/__init__.py`.
 
 ### Dockerfile da aplicação
 

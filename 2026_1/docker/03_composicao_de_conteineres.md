@@ -58,7 +58,7 @@ Untagged: jmhal/devops@sha256:2485b12f6ded8e21a8a6abd69dc8a0715b8a59a2869c1ea79c
 
 ## Usando o *Docker Compose*
 
-- Vamos considerar uma aplicação *web* no *framework* Python que exibe o endereço IP interno do contêiner.
+- Vamos considerar uma aplicação *web* no *framework* Python *Flask* que exibe o endereço IP interno do contêiner.
 - O objetivo é apresentar como podemos coordenar vários contêineres em uma única aplicação.
 
 ![Arquitetura: nginx atuando como proxy reverso para app1 e app2](imagens/03_proxy_reverso_nginx.png)
